@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>系统设置 - 智慧大棚</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <style>
+        body { background: #f4f9f4; font-family: 'Segoe UI', system-ui, sans-serif; }
+        .navbar-brand i { margin-right: 8px; }
+        .page-header { margin-bottom: 1.8rem; }
+        .page-header h2 { font-weight: 600; color: #1e3a1e; border-left: 6px solid #2e7d32; padding-left: 1rem; }
+        .card-custom { border: none; border-radius: 24px; background: white; box-shadow: 0 12px 28px rgba(0, 30, 0, 0.04); overflow: hidden; }
+        .form-label { font-weight: 600; color: #2e3b2e; }
+        .form-control, .form-select { border-radius: 16px; border: 1px solid #c5e1a5; background: #fafdfa; padding: 0.6rem 1rem; }
+        .form-control:focus, .form-select:focus { box-shadow: 0 0 0 3px rgba(46, 125, 50, 0.15); border-color: #2e7d32; background: white; }
+        .btn-success-custom { background: #2e7d32; border: none; border-radius: 40px; padding: 0.7rem 2rem; font-weight: 600; box-shadow: 0 8px 18px rgba(46, 125, 50, 0.25); color: white; }
+        .btn-success-custom:hover { background: #1b5e20; transform: translateY(-2px); }
+        .btn-outline-secondary-custom { border: 1px solid #ced4da; border-radius: 30px; padding: 0.5rem 1.5rem; background: white; }
+        .alert-custom { border-radius: 40px; background: #e8f5e9; color: #1e3a1e; border: none; }
+    </style>
+</head>
+<body>
+<nav class="navbar navbar-expand-lg navbar-dark bg-success">
+    <div class="container">
+        <a class="navbar-brand" href="{{ url_for('home') }}"><i class="bi bi-flower1"></i> 智慧大棚</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"><span class="navbar-toggler-icon"></span></button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav ms-auto">
+                <li class="nav-item"><a class="nav-link" href="{{ url_for('home') }}"><i class="bi bi-house"></i> 首页</a></li>
+                <li class="nav-item"><a class="nav-link" href="{{ url_for('predict_center') }}"><i class="bi bi-graph-up"></i> 预测中心</a></li>
+                <li class="nav-item"><a class="nav-link" href="{{ url_for('messages') }}"><i class="bi bi-chat-dots"></i> 消息</a></li>
+                <li class="nav-item"><a class="nav-link" href="{{ url_for('profile') }}"><i class="bi bi-person-circle"></i> 个人中心</a></li>
+                {% if current_user.role in ['admin', 'operator'] %}
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle active" href="#" role="button" data-bs-toggle="dropdown"><i class="bi bi-shield-lock"></i> 管理</a>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li><a class="dropdown-item" href="{{ url_for('admin_datafiles') }}"><i class="bi bi-folder"></i> 数据文件</a></li>
+                        <li><a class="dropdown-item" href="{{ url_for('admin_history') }}"><i class="bi bi-clock-history"></i> 预测历史</a></li>
+                        {% if current_user.role == 'admin' %}
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="{{ url_for('admin_users') }}"><i class="bi bi-people"></i> 用户管理</a></li>
+                        <li><a class="dropdown-item active" href="{{ url_for('admin_settings') }}"><i class="bi bi-gear"></i> 系统设置</a></li>
+                        <li><a class="dropdown-item" href="{{ url_for('admin_logs') }}"><i class="bi bi-journal-text"></i> 登录日志</a></li>
+                        {% endif %}
+                    </ul>
+                </li>
+                {% endif %}
+                <li class="nav-item"><a class="nav-link" href="{{ url_for('logout') }}"><i class="bi bi-box-arrow-right"></i> 退出</a></li>
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<div class="container mt-4">
+    <div class="page-header">
+        <h2><i class="bi bi-gear me-2"></i>系统配置</h2>
+    </div>
+
+    {% with messages = get_flashed_messages() %}
+        {% if messages %}
+            <div class="alert alert-custom alert-dismissible fade show" role="alert">
+                <i class="bi bi-check-circle-fill me-2"></i>{{ messages[0] }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        {% endif %}
+    {% endwith %}
+
+    <div class="card-custom">
+        <div class="card-body p-4">
+            <form method="post">
+                <h5 class="fw-bold mb-3"><i class="bi bi-sliders2 me-2"></i>预测参数</h5>
+                <div class="mb-3">
+                    <label class="form-label">默认模型选择</label>
+                    <select name="default_model" class="form-select">
+                        <option value="auto" {% if configs.default_model == 'auto' %}selected{% endif %}>🤖 自动推荐</option>
+                        <option value="prophet" {% if configs.default_model == 'prophet' %}selected{% endif %}>📈 Prophet</option>
+                        <option value="linear" {% if configs.default_model == 'linear' %}selected{% endif %}>📉 线性回归</option>
+                        <option value="xgboost" {% if configs.default_model == 'xgboost' %}selected{% endif %}>🌲 XGBoost</option>
+                    </select>
+                    <small class="text-muted">当用户在预测中心未手动选择时的默认行为</small>
+                </div>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Prophet 预测天数</label>
+                        <input type="number" name="prophet_days" class="form-control" value="{{ configs.prophet_days }}" min="1" max="365">
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">线性回归预测天数</label>
+                        <input type="number" name="linear_days" class="form-control" value="{{ configs.linear_days }}" min="1" max="30">
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">XGBoost 预测天数</label>
+                        <input type="number" name="xgboost_days" class="form-control" value="{{ configs.xgboost_days }}" min="1" max="30">
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">自动推荐阈值（天）</label>
+                    <input type="number" name="auto_threshold" class="form-control" value="{{ configs.auto_threshold }}" min="1">
+                    <small class="text-muted">数据跨度≥此天数时自动使用 Prophet，否则使用线性回归（XGBoost 需手动选择）</small>
+                </div>
+                <div class="mb-4">
+                    <label class="form-label">Prophet 变点敏感度</label>
+                    <input type="number" step="0.01" name="changepoint_scale" class="form-control" value="{{ configs.changepoint_scale }}" min="0.01" max="1.0">
+                    <small class="text-muted">值越大模型对趋势变化越敏感</small>
+                </div>
+                <hr>
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-success-custom"><i class="bi bi-check-lg me-1"></i>保存配置</button>
+                    <a href="{{ url_for('home') }}" class="btn btn-outline-secondary-custom"><i class="bi bi-arrow-left me-1"></i>返回首页</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

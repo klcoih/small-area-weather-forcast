@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>注册 - 智慧大棚预测系统</title>
+    <!-- Bootstrap 5 CSS + Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <style>
+        body {
+            background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+        }
+        .register-card {
+            max-width: 420px;
+            margin: 0 auto;
+            border: none;
+            border-radius: 28px;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(2px);
+            box-shadow: 0 20px 40px rgba(0, 40, 0, 0.15);
+            transition: transform 0.2s ease;
+        }
+        .register-card:hover {
+            transform: translateY(-5px);
+        }
+        .card-body {
+            padding: 2.2rem;
+        }
+        .form-icon {
+            background-color: #f1f8e9;
+            border-right: none;
+            border-radius: 12px 0 0 12px;
+        }
+        .form-control {
+            border-left: none;
+            border-radius: 0 12px 12px 0;
+            padding: 0.75rem 1rem;
+            background-color: #f1f8e9;
+            border: 1px solid #c5e1a5;
+        }
+        .form-control:focus {
+            box-shadow: none;
+            border-color: #2e7d32;
+            background-color: #ffffff;
+        }
+        .input-group {
+            box-shadow: 0 2px 6px rgba(0,0,0,0.03);
+        }
+        .input-group-text {
+            border: 1px solid #c5e1a5;
+            border-right: none;
+            border-radius: 12px 0 0 12px;
+            background-color: #f1f8e9;
+        }
+        .btn-register {
+            background: linear-gradient(145deg, #2e7d32, #1b5e20);
+            border: none;
+            border-radius: 40px;
+            padding: 0.75rem;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            box-shadow: 0 8px 16px rgba(46, 125, 50, 0.25);
+            transition: all 0.2s;
+        }
+        .btn-register:hover {
+            background: linear-gradient(145deg, #1b5e20, #145214);
+            transform: scale(1.02);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+        }
+        .btn-register:disabled {
+            opacity: 0.7;
+            transform: none;
+        }
+        .password-toggle {
+            cursor: pointer;
+            background-color: #f1f8e9;
+            border: 1px solid #c5e1a5;
+            border-left: none;
+            border-radius: 0 12px 12px 0;
+            padding: 0 12px;
+            display: flex;
+            align-items: center;
+        }
+        .invalid-feedback {
+            font-size: 0.85rem;
+            margin-top: 6px;
+        }
+        .brand-icon {
+            font-size: 2.8rem;
+            color: #2e7d32;
+        }
+        .alert {
+            border-radius: 40px;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="card register-card">
+        <div class="card-body">
+            <div class="text-center mb-4">
+                <i class="bi bi-flower1 brand-icon"></i>
+                <h3 class="fw-bold text-success mt-2">🌱 创建新账号</h3>
+                <p class="text-muted small">加入智慧大棚，开启智能预测</p>
+            </div>
+
+            <!-- Flash 消息 -->
+            {% with messages = get_flashed_messages() %}
+                {% if messages %}
+                    <div class="alert alert-info alert-dismissible fade show" role="alert">
+                        <i class="bi bi-info-circle-fill me-2"></i>{{ messages[0] }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                {% endif %}
+            {% endwith %}
+
+            <form method="post" id="registerForm" novalidate>
+                <!-- 用户名 -->
+                <div class="mb-3">
+                    <label class="form-label fw-semibold small text-secondary">用户名</label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="bi bi-person"></i></span>
+                        <input type="text" name="username" class="form-control" id="username"
+                               placeholder="字母、数字或下划线" pattern="^[a-zA-Z0-9_]{3,20}$" required>
+                        <div class="invalid-feedback">
+                            用户名需为3-20位字母、数字或下划线
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 密码 -->
+                <div class="mb-3">
+                    <label class="form-label fw-semibold small text-secondary">密码</label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="bi bi-lock"></i></span>
+                        <input type="password" name="password" class="form-control" id="password"
+                               placeholder="至少6位字符" minlength="6" required>
+                        <span class="password-toggle" id="togglePassword" tabindex="0">
+                            <i class="bi bi-eye-slash" id="toggleIcon"></i>
+                        </span>
+                        <div class="invalid-feedback">
+                            密码长度至少6位
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 确认密码 (前端校验) -->
+                <div class="mb-4">
+                    <label class="form-label fw-semibold small text-secondary">确认密码</label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="bi bi-lock-fill"></i></span>
+                        <input type="password" class="form-control" id="confirmPassword"
+                               placeholder="再次输入密码" minlength="6" required>
+                        <span class="password-toggle" id="toggleConfirmPassword" tabindex="0">
+                            <i class="bi bi-eye-slash" id="toggleConfirmIcon"></i>
+                        </span>
+                        <div class="invalid-feedback" id="confirmFeedback">
+                            两次密码不一致
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 提交按钮 -->
+                <button type="submit" class="btn btn-register text-white w-100" id="submitBtn">
+                    <span class="spinner-border spinner-border-sm d-none me-2" id="btnSpinner" role="status"></span>
+                    立即注册
+                </button>
+
+                <div class="text-center mt-4">
+                    <span class="text-muted small">已有账号？</span>
+                    <a href="{{ url_for('login') }}" class="text-success fw-semibold text-decoration-none">
+                        去登录 <i class="bi bi-arrow-right-circle"></i>
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Bootstrap JS + Popper -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    (function() {
+        'use strict';
+
+        // 获取表单元素
+        const form = document.getElementById('registerForm');
+        const username = document.getElementById('username');
+        const password = document.getElementById('password');
+        const confirmPassword = document.getElementById('confirmPassword');
+        const submitBtn = document.getElementById('submitBtn');
+        const btnSpinner = document.getElementById('btnSpinner');
+        const confirmFeedback = document.getElementById('confirmFeedback');
+
+        // 密码可见切换函数
+        function setupPasswordToggle(toggleId, inputId, iconId) {
+            const toggle = document.getElementById(toggleId);
+            const input = document.getElementById(inputId);
+            const icon = document.getElementById(iconId);
+            if (!toggle || !input || !icon) return;
+
+            toggle.addEventListener('click', function() {
+                const type = input.getAttribute('type') === 'password' ? 'text' : 'password';
+                input.setAttribute('type', type);
+                icon.classList.toggle('bi-eye');
+                icon.classList.toggle('bi-eye-slash');
+            });
+            // 键盘支持
+            toggle.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    this.click();
+                }
+            });
+        }
+
+        setupPasswordToggle('togglePassword', 'password', 'toggleIcon');
+        setupPasswordToggle('toggleConfirmPassword', 'confirmPassword', 'toggleConfirmIcon');
+
+        // 自定义验证：密码长度 ≥ 6
+        function validatePassword() {
+            if (password.value.length < 6) {
+                password.setCustomValidity('密码至少需要6位');
+                return false;
+            } else {
+                password.setCustomValidity('');
+                return true;
+            }
+        }
+
+        // 自定义验证：两次密码一致
+        function validateConfirm() {
+            if (password.value !== confirmPassword.value) {
+                confirmPassword.setCustomValidity('两次输入的密码不一致');
+                confirmFeedback.style.display = 'block';
+                return false;
+            } else {
+                confirmPassword.setCustomValidity('');
+                confirmFeedback.style.display = 'none';
+                return true;
+            }
+        }
+
+        // 实时验证
+        password.addEventListener('input', function() {
+            validatePassword();
+            if (confirmPassword.value.length > 0) {
+                validateConfirm();
+            }
+        });
+
+        confirmPassword.addEventListener('input', validateConfirm);
+        username.addEventListener('input', function() {
+            const pattern = /^[a-zA-Z0-9_]{3,20}$/;
+            if (!pattern.test(username.value)) {
+                username.setCustomValidity('用户名需为3-20位字母、数字或下划线');
+            } else {
+                username.setCustomValidity('');
+            }
+        });
+
+        // 提交时阻止无效表单并显示加载状态
+        form.addEventListener('submit', function(event) {
+            // 执行验证
+            const isUserValid = username.checkValidity();
+            const isPassValid = validatePassword();
+            const isConfirmValid = validateConfirm();
+
+            if (!form.checkValidity() || !isPassValid || !isConfirmValid) {
+                event.preventDefault();
+                event.stopPropagation();
+                // 触发 Bootstrap 样式
+                form.classList.add('was-validated');
+            } else {
+                // 显示加载状态
+                submitBtn.disabled = true;
+                btnSpinner.classList.remove('d-none');
+            }
+        }, false);
+
+        // 防止浏览器自动填充时的样式问题
+        window.addEventListener('load', function() {
+            if (password.value) validatePassword();
+            if (confirmPassword.value) validateConfirm();
+        });
+    })();
+</script>
+</body>
+</html>

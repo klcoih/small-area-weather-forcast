@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>预测中心 - 智慧大棚</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <style>
+        body {
+            background: #f4f9f4;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+        }
+        .navbar-brand i { margin-right: 8px; }
+        .page-header {
+            margin-bottom: 1.8rem;
+        }
+        .page-header h2 {
+            font-weight: 600;
+            color: #1e3a1e;
+            border-left: 6px solid #2e7d32;
+            padding-left: 1rem;
+        }
+        .info-card {
+            border: none;
+            border-radius: 24px;
+            background: linear-gradient(145deg, #e8f5e9, #c8e6c9);
+            color: #1e3a1e;
+            box-shadow: 0 8px 20px rgba(46, 125, 50, 0.08);
+            padding: 1.2rem 1.5rem;
+            margin-bottom: 2rem;
+        }
+        .info-card i { font-size: 1.8rem; margin-right: 12px; color: #2e7d32; }
+        .recommend-badge {
+            background: #1e3a1e;
+            color: white;
+            border-radius: 40px;
+            padding: 0.3rem 1.2rem;
+            font-weight: 500;
+            font-size: 0.9rem;
+        }
+        .form-card {
+            border: none;
+            border-radius: 28px;
+            box-shadow: 0 15px 35px rgba(0, 30, 0, 0.05);
+            background: #ffffff;
+            overflow: hidden;
+        }
+        .form-card .card-body { padding: 2rem; }
+        .form-label {
+            font-weight: 600;
+            color: #2e3b2e;
+            margin-bottom: 0.5rem;
+        }
+        .form-label i { color: #2e7d32; margin-right: 6px; }
+
+        /* 上传区域 - 缩小点击热区，明确点击按钮 */
+        .file-upload-container {
+            border: 2px dashed #a5d6a7;
+            border-radius: 20px;
+            background: #fafdfa;
+            padding: 1.2rem 1.5rem;
+            transition: border-color 0.2s;
+        }
+        .file-upload-container:hover { border-color: #2e7d32; background: #f1f8e9; }
+        .file-upload-trigger {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: #e8f5e9;
+            padding: 0.6rem 1.5rem;
+            border-radius: 40px;
+            color: #2e7d32;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.2s;
+            border: 1px solid #a5d6a7;
+        }
+        .file-upload-trigger:hover { background: #c8e6c9; }
+        .file-upload-trigger i { font-size: 1.2rem; margin-right: 6px; }
+        .file-list {
+            margin-top: 1rem;
+            max-height: 100px;
+            overflow-y: auto;
+        }
+        .file-list .badge {
+            background: #e8f5e9;
+            color: #1e3a1e;
+            font-weight: normal;
+            margin: 2px 4px 2px 0;
+        }
+        .form-select, .form-control {
+            border-radius: 16px;
+            border: 1px solid #c5e1a5;
+            background-color: #fafdfa;
+            padding: 0.7rem 1rem;
+        }
+        .form-select:focus, .form-control:focus {
+            box-shadow: 0 0 0 3px rgba(46, 125, 50, 0.15);
+            border-color: #2e7d32;
+            background-color: #ffffff;
+        }
+        .btn-predict {
+            background: linear-gradient(145deg, #2e7d32, #1b5e20);
+            border: none;
+            border-radius: 40px;
+            padding: 0.8rem 2rem;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            box-shadow: 0 8px 18px rgba(46, 125, 50, 0.25);
+            transition: all 0.2s;
+        }
+        .btn-predict:hover {
+            background: linear-gradient(145deg, #1b5e20, #145214);
+            transform: translateY(-3px);
+            box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15);
+        }
+        .btn-predict:disabled { opacity: 0.7; transform: none; }
+        .alert {
+            border-radius: 40px;
+            border: none;
+            background: #fff3cd;
+            color: #856404;
+        }
+        @media (max-width: 576px) {
+            .form-card .card-body { padding: 1.5rem; }
+        }
+    </style>
+</head>
+<body>
+<nav class="navbar navbar-expand-lg navbar-dark bg-success">
+    <div class="container">
+        <a class="navbar-brand" href="{{ url_for('home') }}">
+            <i class="bi bi-flower1"></i> 智慧大棚
+        </a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav ms-auto">
+                <li class="nav-item"><a class="nav-link" href="{{ url_for('home') }}"><i class="bi bi-house"></i> 首页</a></li>
+                <li class="nav-item"><a class="nav-link active" href="{{ url_for('predict_center') }}"><i class="bi bi-graph-up"></i> 预测中心</a></li>
+                <li class="nav-item"><a class="nav-link" href="{{ url_for('messages') }}"><i class="bi bi-chat-dots"></i> 消息</a></li>
+                <li class="nav-item"><a class="nav-link" href="{{ url_for('profile') }}"><i class="bi bi-person-circle"></i> 个人中心</a></li>
+                {% if current_user.role in ['admin', 'operator'] %}
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                        <i class="bi bi-shield-lock"></i> 管理
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li><a class="dropdown-item" href="{{ url_for('admin_datafiles') }}"><i class="bi bi-folder"></i> 数据文件</a></li>
+                        <li><a class="dropdown-item" href="{{ url_for('admin_history') }}"><i class="bi bi-clock-history"></i> 预测历史</a></li>
+                        {% if current_user.role == 'admin' %}
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="{{ url_for('admin_users') }}"><i class="bi bi-people"></i> 用户管理</a></li>
+                        <li><a class="dropdown-item" href="{{ url_for('admin_settings') }}"><i class="bi bi-gear"></i> 系统设置</a></li>
+                        <li><a class="dropdown-item" href="{{ url_for('admin_logs') }}"><i class="bi bi-journal-text"></i> 登录日志</a></li>
+                        {% endif %}
+                    </ul>
+                </li>
+                {% endif %}
+                <li class="nav-item"><a class="nav-link" href="{{ url_for('logout') }}"><i class="bi bi-box-arrow-right"></i> 退出</a></li>
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<div class="container mt-4">
+    <div class="page-header">
+        <h2><i class="bi bi-cloud-upload me-2"></i>温湿度预测中心</h2>
+    </div>
+
+    <!-- 系统数据跨度提示 -->
+    <div class="info-card d-flex align-items-center flex-wrap">
+        <div class="d-flex align-items-center me-auto">
+            <i class="bi bi-database"></i>
+            <div>
+                <span class="fw-bold">系统数据跨度：{{ system_span }} 天</span>
+                <div class="mt-1">
+                    {% if system_span >= auto_threshold %}
+                        <span class="recommend-badge"><i class="bi bi-stars me-1"></i>推荐使用 Prophet 模型（年周期）</span>
+                    {% else %}
+                        <span class="recommend-badge"><i class="bi bi-graph-up me-1"></i>推荐使用线性回归模型（短期预测）</span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        <div class="mt-2 mt-sm-0">
+            <small class="text-muted">阈值：{{ auto_threshold }}天自动切换</small>
+        </div>
+    </div>
+
+    {% with messages = get_flashed_messages() %}
+        {% if messages %}
+            <div class="alert alert-warning alert-dismissible fade show" role="alert">
+                <i class="bi bi-exclamation-triangle-fill me-2"></i>{{ messages[0] }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        {% endif %}
+    {% endwith %}
+
+    <div class="form-card">
+        <div class="card-body">
+            <form method="post" enctype="multipart/form-data" id="predictForm">
+                <!-- 文件上传区域（改良版） -->
+                <div class="mb-4">
+                    <label class="form-label">
+                        <i class="bi bi-file-earmark-text"></i> 上传温湿度数据文件 (.txt)
+                    </label>
+                    <div class="file-upload-container">
+                        <div class="d-flex align-items-center justify-content-between">
+                            <div>
+                                <i class="bi bi-cloud-upload fs-3 text-success me-2"></i>
+                                <span class="fw-semibold">拖拽文件到此处，或</span>
+                            </div>
+                            <!-- 明确的上传触发按钮 -->
+                            <span class="file-upload-trigger" id="uploadTrigger">
+                                <i class="bi bi-folder2-open"></i> 选择文件
+                            </span>
+                        </div>
+                        <p class="text-muted small mt-2 mb-0">支持批量上传 .txt 格式，每个文件独立预测</p>
+                        <!-- 隐藏的文件输入 -->
+                        <input type="file" name="files" id="fileInput" accept=".txt" multiple style="display: none;" required>
+                    </div>
+                    <div class="file-list" id="fileList"></div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label"><i class="bi bi-bullseye"></i> 预测目标</label>
+                        <select name="target" class="form-select">
+                            <option value="温度(℃)">🌡️ 温度 (℃)</option>
+                            <option value="湿度(%)">💧 湿度 (%)</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6 mb-4">
+                        <label class="form-label"><i class="bi bi-cpu"></i> 模型选择</label>
+                        <select name="model_choice" class="form-select">
+                            <option value="auto">🤖 自动推荐（根据数据年限）</option>
+                            <option value="prophet">📈 Prophet（年周期，需≥{{ auto_threshold }}天数据）</option>
+                            <option value="linear">📉 线性回归（短期，适合<{{ auto_threshold }}天）</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="d-grid">
+                    <button type="submit" class="btn btn-predict text-white" id="submitBtn">
+                        <span class="spinner-border spinner-border-sm d-none me-2" id="btnSpinner"></span>
+                        <i class="bi bi-play-fill me-1"></i> 开始批量预测
+                    </button>
+                </div>
+                <p class="text-muted small text-center mt-3 mb-0">
+                    <i class="bi bi-info-circle"></i> 上传后系统将自动清洗数据并进行预测，请耐心等待
+                </p>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    (function() {
+        const fileInput = document.getElementById('fileInput');
+        const fileList = document.getElementById('fileList');
+        const uploadTrigger = document.getElementById('uploadTrigger');
+        const dropZone = document.querySelector('.file-upload-container');
+        const submitBtn = document.getElementById('submitBtn');
+        const btnSpinner = document.getElementById('btnSpinner');
+        const form = document.getElementById('predictForm');
+
+        // 点击“选择文件”按钮触发文件选择
+        uploadTrigger.addEventListener('click', () => fileInput.click());
+
+        // 更新文件列表
+        function updateFileList(files) {
+            fileList.innerHTML = '';
+            if (files.length === 0) {
+                fileList.innerHTML = '<span class="text-muted small">未选择任何文件</span>';
+                return;
+            }
+            for (let file of files) {
+                const badge = document.createElement('span');
+                badge.className = 'badge';
+                badge.innerHTML = `<i class="bi bi-file-text me-1"></i>${file.name}`;
+                fileList.appendChild(badge);
+            }
+        }
+
+        fileInput.addEventListener('change', e => updateFileList(e.target.files));
+
+        // 拖拽上传 (整个容器可拖放，但不会误触点击)
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, preventDefaults, false);
+        });
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropZone.addEventListener(eventName, () => dropZone.classList.add('border-success'), false);
+        });
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, () => dropZone.classList.remove('border-success'), false);
+        });
+        dropZone.addEventListener('drop', function(e) {
+            const files = e.dataTransfer.files;
+            fileInput.files = files;
+            updateFileList(files);
+        });
+
+        // 提交加载状态
+        form.addEventListener('submit', function() {
+            if (form.checkValidity()) {
+                submitBtn.disabled = true;
+                btnSpinner.classList.remove('d-none');
+            }
+        });
+    })();
+</script>
+</body>
+</html>

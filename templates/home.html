@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>首页 - 智慧大棚</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <style>
+        body {
+            background: #f4f9f4;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+        }
+        .navbar-brand i {
+            margin-right: 8px;
+        }
+        .page-header {
+            margin-bottom: 1.8rem;
+        }
+        .page-header h2 {
+            font-weight: 600;
+            color: #1e3a1e;
+            border-left: 6px solid #2e7d32;
+            padding-left: 1rem;
+        }
+        .welcome-card {
+            border: none;
+            border-radius: 28px;
+            background: linear-gradient(145deg, #e8f5e9, #c8e6c9);
+            box-shadow: 0 15px 30px rgba(0, 40, 0, 0.06);
+            padding: 2rem 2rem 1.8rem;
+            margin-bottom: 2rem;
+            transition: transform 0.2s;
+        }
+        .welcome-card:hover {
+            transform: translateY(-3px);
+        }
+        .welcome-avatar {
+            background: white;
+            width: 70px;
+            height: 70px;
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 8px 18px rgba(0,0,0,0.05);
+            margin-right: 1.2rem;
+        }
+        .welcome-avatar i {
+            font-size: 2.5rem;
+            color: #2e7d32;
+        }
+        .btn-predict {
+            background: #2e7d32;
+            color: white;
+            border-radius: 40px;
+            padding: 0.7rem 2rem;
+            font-weight: 600;
+            border: none;
+            box-shadow: 0 8px 18px rgba(46, 125, 50, 0.25);
+            transition: all 0.2s;
+        }
+        .btn-predict:hover {
+            background: #1b5e20;
+            transform: translateY(-2px);
+            box-shadow: 0 12px 22px rgba(46, 125, 50, 0.3);
+            color: white;
+        }
+        .material-card {
+            border: none;
+            border-radius: 28px;
+            background: white;
+            box-shadow: 0 12px 28px rgba(0, 30, 0, 0.04);
+            overflow: hidden;
+            height: 100%;
+        }
+        .material-header {
+            background: #e8f5e9;
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid rgba(46,125,50,0.1);
+            font-weight: 700;
+            color: #1e3a1e;
+        }
+        .material-item {
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid #f0f0f0;
+            transition: background 0.15s;
+        }
+        .material-item:last-child {
+            border-bottom: none;
+        }
+        .material-item:hover {
+            background: #fafdfa;
+        }
+        .material-title {
+            font-weight: 700;
+            color: #2e3b2e;
+            margin-bottom: 0.25rem;
+        }
+        .material-content {
+            color: #5a6a5a;
+            font-size: 0.9rem;
+            margin-bottom: 0.5rem;
+        }
+        .material-link {
+            color: #2e7d32;
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 0.85rem;
+        }
+        .material-link i {
+            font-size: 0.8rem;
+            margin-left: 4px;
+        }
+        .empty-state {
+            padding: 2.5rem;
+            text-align: center;
+            color: #8aa08a;
+        }
+        .empty-state i {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+            opacity: 0.7;
+        }
+        .stats-badge {
+            background: white;
+            border-radius: 40px;
+            padding: 0.3rem 1.2rem;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.02);
+            font-size: 0.9rem;
+        }
+        /* 上传按钮 */
+        .btn-upload {
+            background: transparent;
+            border: 1.5px solid #2e7d32;
+            color: #2e7d32;
+            border-radius: 40px;
+            width: 36px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+        .btn-upload:hover {
+            background: #2e7d32;
+            color: white;
+        }
+        /* 模态框样式 */
+        .modal-content {
+            border-radius: 28px;
+            border: none;
+        }
+        .modal-header {
+            background: #e8f5e9;
+            border-bottom: 1px solid rgba(46,125,50,0.1);
+            border-radius: 28px 28px 0 0;
+            padding: 1.2rem 1.5rem;
+        }
+        .modal-footer {
+            border-top: 1px solid rgba(46,125,50,0.1);
+            padding: 1rem 1.5rem;
+        }
+        .form-control:focus, .form-select:focus {
+            box-shadow: 0 0 0 3px rgba(46, 125, 50, 0.15);
+            border-color: #2e7d32;
+        }
+        @media (max-width: 576px) {
+            .welcome-card {
+                padding: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+<nav class="navbar navbar-expand-lg navbar-dark bg-success">
+    <div class="container">
+        <a class="navbar-brand" href="{{ url_for('home') }}">
+            <i class="bi bi-flower1"></i> 智慧大棚
+        </a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav ms-auto">
+                <li class="nav-item"><a class="nav-link active" href="{{ url_for('home') }}"><i class="bi bi-house"></i> 首页</a></li>
+                <li class="nav-item"><a class="nav-link" href="{{ url_for('predict_center') }}"><i class="bi bi-graph-up"></i> 预测中心</a></li>
+                <li class="nav-item"><a class="nav-link" href="{{ url_for('messages') }}"><i class="bi bi-chat-dots"></i> 消息</a></li>
+                <li class="nav-item"><a class="nav-link" href="{{ url_for('profile') }}"><i class="bi bi-person-circle"></i> 个人中心</a></li>
+                {% if current_user.role in ['admin', 'operator'] %}
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                        <i class="bi bi-shield-lock"></i> 管理
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li><a class="dropdown-item" href="{{ url_for('admin_datafiles') }}"><i class="bi bi-folder"></i> 数据文件</a></li>
+                        <li><a class="dropdown-item" href="{{ url_for('admin_history') }}"><i class="bi bi-clock-history"></i> 预测历史</a></li>
+                        {% if current_user.role == 'admin' %}
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="{{ url_for('admin_users') }}"><i class="bi bi-people"></i> 用户管理</a></li>
+                        <li><a class="dropdown-item" href="{{ url_for('admin_settings') }}"><i class="bi bi-gear"></i> 系统设置</a></li>
+                        <li><a class="dropdown-item" href="{{ url_for('admin_logs') }}"><i class="bi bi-journal-text"></i> 登录日志</a></li>
+                        {% endif %}
+                    </ul>
+                </li>
+                {% endif %}
+                <li class="nav-item"><a class="nav-link" href="{{ url_for('logout') }}"><i class="bi bi-box-arrow-right"></i> 退出</a></li>
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<div class="container mt-4">
+    <!-- 欢迎卡片 -->
+    <div class="welcome-card">
+        <div class="d-flex flex-wrap align-items-center">
+            <div class="welcome-avatar">
+                <i class="bi bi-person-fill"></i>
+            </div>
+            <div class="me-auto">
+                <h2 class="fw-bold mb-1">欢迎回来，{{ user.username }}</h2>
+                <p class="text-secondary mb-2">
+                    <i class="bi bi-thermometer-half me-1"></i>智慧大棚 · 温湿度智能预测
+                </p>
+                <span class="stats-badge">
+                    <i class="bi bi-shield-check text-success me-1"></i>
+                    {% if user.role == 'admin' %}管理员
+                    {% elif user.role == 'operator' %}操作员
+                    {% elif user.role == 'viewer' %}查看者
+                    {% else %}普通用户{% endif %}
+                </span>
+            </div>
+            <div class="mt-3 mt-sm-0">
+                <a href="{{ url_for('predict_center') }}" class="btn btn-predict">
+                    <i class="bi bi-play-fill me-2"></i>开始预测
+                </a>
+            </div>
+        </div>
+        <hr class="my-3">
+        <p class="mb-0 text-secondary">
+            <i class="bi bi-lightbulb me-1"></i>基于历史温湿度数据与AI模型，精准预测未来7~30天趋势，为农事决策提供科学依据。
+        </p>
+    </div>
+
+    <div class="row g-4">
+        <!-- 左侧：预测入口及简介 -->
+        <div class="col-lg-8">
+            <div class="card border-0 rounded-4 shadow-sm h-100" style="background: white;">
+                <div class="card-body p-4">
+                    <h5 class="fw-bold mb-3"><i class="bi bi-graph-up-arrow text-success me-2"></i>快速开始</h5>
+                    <div class="row g-3">
+                        <div class="col-sm-6">
+                            <div class="p-3 bg-light rounded-4 h-100" style="background: #fafdfa !important;">
+                                <i class="bi bi-cloud-upload fs-2 text-success mb-3"></i>
+                                <h6>上传数据</h6>
+                                <p class="small text-secondary">支持 .txt 格式，自动清洗异常值，批量处理。</p>
+                            </div>
+                        </div>
+                        <div class="col-sm-6">
+                            <div class="p-3 bg-light rounded-4 h-100" style="background: #fafdfa !important;">
+                                <i class="bi bi-cpu fs-2 text-success mb-3"></i>
+                                <h6>选择模型</h6>
+                                <p class="small text-secondary">Prophet / 线性回归，智能推荐或手动指定。</p>
+                            </div>
+                        </div>
+                        <div class="col-sm-6">
+                            <div class="p-3 bg-light rounded-4 h-100" style="background: #fafdfa !important;">
+                                <i class="bi bi-bar-chart-steps fs-2 text-success mb-3"></i>
+                                <h6>生成预测</h6>
+                                <p class="small text-secondary">一键生成预测图表与 CSV 报告，随时下载。</p>
+                            </div>
+                        </div>
+                        <div class="col-sm-6">
+                            <div class="p-3 bg-light rounded-4 h-100" style="background: #fafdfa !important;">
+                                <i class="bi bi-clock-history fs-2 text-success mb-3"></i>
+                                <h6>历史记录</h6>
+                                <p class="small text-secondary">个人中心查看所有历史预测，方便追溯分析。</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 右侧：管理员资料（带上传入口） -->
+        <div class="col-lg-4">
+            <div class="material-card">
+                <div class="material-header d-flex justify-content-between align-items-center">
+                    <span><i class="bi bi-folder2-open me-2"></i>管理员资料</span>
+                    {% if current_user.role in ['admin', 'operator'] %}
+                    <button class="btn-upload" data-bs-toggle="modal" data-bs-target="#uploadMaterialModal" title="上传新资料">
+                        <i class="bi bi-plus-lg"></i>
+                    </button>
+                    {% endif %}
+                </div>
+                <div class="card-body p-0">
+                    {% if materials %}
+                        {% for material in materials %}
+                        <div class="material-item">
+                            <div class="material-title">
+                                <i class="bi bi-file-earmark-text me-2 text-success"></i>{{ material.title }}
+                            </div>
+                            <div class="material-content">
+                                {{ material.content[:120] }}{% if material.content|length > 120 %}...{% endif %}
+                            </div>
+                            {% if material.file_path %}
+                            <a href="/uploads/{{ material.file_path.split('/')[-1] }}" target="_blank" class="material-link">
+                                <i class="bi bi-download me-1"></i>下载附件<i class="bi bi-box-arrow-up-right"></i>
+                            </a>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                    <div class="empty-state">
+                        <i class="bi bi-inbox"></i>
+                        <p class="mb-0">暂无资料</p>
+                        <small class="text-muted">管理员暂未上传任何资料</small>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 上传资料模态框 -->
+<div class="modal fade" id="uploadMaterialModal" tabindex="-1" aria-labelledby="uploadModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post" action="{{ url_for('upload_material') }}" enctype="multipart/form-data">
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold" id="uploadModalLabel"><i class="bi bi-cloud-upload me-2"></i>上传新资料</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">标题</label>
+                        <input type="text" name="title" class="form-control" placeholder="资料标题" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">内容简介</label>
+                        <textarea name="content" class="form-control" rows="3" placeholder="简要描述..."></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">附件（可选）</label>
+                        <input type="file" name="file" class="form-control">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="submit" class="btn btn-success"><i class="bi bi-upload me-1"></i>上传</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

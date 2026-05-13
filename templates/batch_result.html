@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>批量预测结果 - 智慧大棚</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <style>
+        body {
+            background: #f4f9f4;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+        }
+        .navbar-brand i { margin-right: 8px; }
+        .page-header {
+            margin-bottom: 1.8rem;
+        }
+        .page-header h2 {
+            font-weight: 600;
+            color: #1e3a1e;
+            border-left: 6px solid #2e7d32;
+            padding-left: 1rem;
+        }
+        .result-summary-badge {
+            background: #e8f5e9;
+            color: #1e3a1e;
+            padding: 0.3rem 1.2rem;
+            border-radius: 40px;
+            font-weight: 500;
+            display: inline-block;
+            margin-right: 0.8rem;
+            margin-bottom: 0.5rem;
+        }
+        .greenhouse-card {
+            border: none;
+            border-radius: 28px;
+            background: white;
+            box-shadow: 0 15px 30px rgba(0, 40, 0, 0.06);
+            overflow: hidden;
+            margin-bottom: 2.5rem;
+        }
+        .greenhouse-header {
+            background: linear-gradient(145deg, #2e7d32, #1b5e20);
+            color: white;
+            padding: 1.2rem 1.8rem;
+            font-weight: 600;
+            font-size: 1.1rem;
+        }
+        .greenhouse-body {
+            padding: 1.8rem;
+        }
+        .stat-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1.5rem 2.5rem;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid #e0e8e0;
+        }
+        .stat-item {
+            display: flex;
+            align-items: center;
+        }
+        .stat-item i {
+            font-size: 1.5rem;
+            color: #2e7d32;
+            margin-right: 10px;
+        }
+        .chart-wrapper {
+            background: #fafdfa;
+            border-radius: 20px;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+            border: 1px solid rgba(46,125,50,0.1);
+        }
+        .chart-wrapper img {
+            border-radius: 16px;
+            width: 100%;
+            height: auto;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.03);
+        }
+        .btn-download {
+            background: #2e7d32;
+            color: white;
+            border-radius: 40px;
+            padding: 0.5rem 1.8rem;
+            font-weight: 500;
+            border: none;
+            box-shadow: 0 6px 12px rgba(46, 125, 50, 0.2);
+            transition: all 0.2s;
+        }
+        .btn-download:hover {
+            background: #1b5e20;
+            transform: translateY(-2px);
+            box-shadow: 0 10px 18px rgba(46, 125, 50, 0.3);
+            color: white;
+        }
+        .file-card {
+            border: none;
+            border-radius: 24px;
+            background: white;
+            box-shadow: 0 10px 25px rgba(0, 30, 0, 0.04);
+            transition: transform 0.2s, box-shadow 0.2s;
+            height: 100%;
+            overflow: hidden;
+        }
+        .file-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 35px rgba(0, 50, 0, 0.08);
+        }
+        .file-header {
+            padding: 1rem 1.3rem;
+            background: #fafdfa;
+            border-bottom: 1px solid #e0e8e0;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .file-body {
+            padding: 1.3rem;
+        }
+        .badge-success-custom {
+            background: #2e7d32;
+            color: white;
+            border-radius: 40px;
+            padding: 0.25rem 0.9rem;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+        .badge-danger-custom {
+            background: #d32f2f;
+            color: white;
+            border-radius: 40px;
+            padding: 0.25rem 0.9rem;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+        .empty-state {
+            background: white;
+            border-radius: 24px;
+            padding: 2.5rem;
+            text-align: center;
+            color: #8aa08a;
+            box-shadow: 0 10px 25px rgba(0, 30, 0, 0.04);
+        }
+        .empty-state i {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            opacity: 0.6;
+        }
+        .section-title {
+            font-weight: 600;
+            margin-bottom: 1.5rem;
+            color: #1e3a1e;
+        }
+        .section-title i {
+            color: #2e7d32;
+            margin-right: 8px;
+        }
+        .btn-outline-secondary-custom {
+            border: 1px solid #ced4da;
+            border-radius: 40px;
+            padding: 0.5rem 1.8rem;
+            font-weight: 500;
+            background: white;
+            transition: all 0.2s;
+        }
+        .btn-outline-secondary-custom:hover {
+            background: #f8f9fa;
+            border-color: #2e7d32;
+            color: #2e7d32;
+        }
+        @media (max-width: 576px) {
+            .greenhouse-body { padding: 1.2rem; }
+        }
+    </style>
+</head>
+<body>
+<nav class="navbar navbar-expand-lg navbar-dark bg-success">
+    <div class="container">
+        <a class="navbar-brand" href="{{ url_for('home') }}">
+            <i class="bi bi-flower1"></i> 智慧大棚
+        </a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav ms-auto">
+                <li class="nav-item"><a class="nav-link" href="{{ url_for('home') }}"><i class="bi bi-house"></i> 首页</a></li>
+                <li class="nav-item"><a class="nav-link active" href="{{ url_for('predict_center') }}"><i class="bi bi-graph-up"></i> 预测中心</a></li>
+                <li class="nav-item"><a class="nav-link" href="{{ url_for('messages') }}"><i class="bi bi-chat-dots"></i> 消息</a></li>
+                <li class="nav-item"><a class="nav-link" href="{{ url_for('profile') }}"><i class="bi bi-person-circle"></i> 个人中心</a></li>
+                {% if current_user.role in ['admin', 'operator'] %}
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                        <i class="bi bi-shield-lock"></i> 管理
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li><a class="dropdown-item" href="{{ url_for('admin_datafiles') }}"><i class="bi bi-folder"></i> 数据文件</a></li>
+                        <li><a class="dropdown-item" href="{{ url_for('admin_history') }}"><i class="bi bi-clock-history"></i> 预测历史</a></li>
+                        {% if current_user.role == 'admin' %}
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="{{ url_for('admin_users') }}"><i class="bi bi-people"></i> 用户管理</a></li>
+                        <li><a class="dropdown-item" href="{{ url_for('admin_settings') }}"><i class="bi bi-gear"></i> 系统设置</a></li>
+                        <li><a class="dropdown-item" href="{{ url_for('admin_logs') }}"><i class="bi bi-journal-text"></i> 登录日志</a></li>
+                        {% endif %}
+                    </ul>
+                </li>
+                {% endif %}
+                <li class="nav-item"><a class="nav-link" href="{{ url_for('logout') }}"><i class="bi bi-box-arrow-right"></i> 退出</a></li>
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<div class="container mt-4">
+    <div class="page-header d-flex align-items-center">
+        <h2><i class="bi bi-bar-chart-steps me-2"></i>批量预测结果</h2>
+        <span class="result-summary-badge ms-3">
+            <i class="bi bi-bullseye me-1"></i>目标：{{ target }}
+        </span>
+    </div>
+
+    <!-- 整体大棚预测 -->
+    {% set greenhouse_result = results|selectattr("type", "equalto", "greenhouse")|first %}
+    {% if greenhouse_result %}
+    <div class="greenhouse-card">
+        <div class="greenhouse-header">
+            <i class="bi bi-tree-fill me-2"></i> 整体大棚预测 · 基于所有传感器数据
+        </div>
+        <div class="greenhouse-body">
+            {% if greenhouse_result.success %}
+                <div class="stat-row">
+                    <div class="stat-item">
+                        <i class="bi bi-calendar-range"></i>
+                        <div><span class="text-secondary">数据跨度</span><br><strong>{{ greenhouse_result.span_days }} 天</strong></div>
+                    </div>
+                    <div class="stat-item">
+                        <i class="bi bi-cpu"></i>
+                        <div><span class="text-secondary">使用模型</span><br><strong>{{ greenhouse_result.model_name }}</strong></div>
+                    </div>
+                    <div class="stat-item">
+                        <i class="bi bi-hourglass-split"></i>
+                        <div><span class="text-secondary">预测天数</span><br><strong>{{ greenhouse_result.pred_days }} 天</strong></div>
+                    </div>
+                </div>
+                <div class="chart-wrapper">
+                    <img src="{{ greenhouse_result.img_url }}" alt="整体大棚预测图">
+                </div>
+                <a href="{{ greenhouse_result.csv_url }}" class="btn btn-download">
+                    <i class="bi bi-download me-2"></i>下载整体预测 CSV
+                </a>
+            {% else %}
+                <div class="alert alert-danger rounded-4 border-0">
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i>整体预测失败：{{ greenhouse_result.error }}
+                </div>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- 用户上传文件预测结果 -->
+    <div class="section-title">
+        <i class="bi bi-files me-2"></i> 上传文件预测结果
+        <small class="text-muted ms-2 fs-6">共 {{ results|selectattr("type", "equalto", "file")|list|length }} 个文件</small>
+    </div>
+
+    <div class="row g-4">
+        {% for res in results if res.type == 'file' %}
+        <div class="col-lg-6">
+            <div class="file-card">
+                <div class="file-header">
+                    <span><i class="bi bi-file-text me-2 text-success"></i>{{ res.filename }}</span>
+                    {% if res.success %}
+                        <span class="badge-success-custom"><i class="bi bi-check-circle me-1"></i>成功</span>
+                    {% else %}
+                        <span class="badge-danger-custom"><i class="bi bi-x-circle me-1"></i>失败</span>
+                    {% endif %}
+                </div>
+                <div class="file-body">
+                    {% if res.success %}
+                        <div class="d-flex flex-wrap gap-3 mb-3">
+                            <span><i class="bi bi-calendar-range text-success me-1"></i>{{ res.span_days }} 天</span>
+                            <span><i class="bi bi-cpu text-success me-1"></i>{{ res.model_name }}</span>
+                            <span><i class="bi bi-hourglass-split text-success me-1"></i>{{ res.pred_days }} 天预测</span>
+                        </div>
+                        <div class="chart-wrapper mb-3" style="background: #f4f9f4;">
+                            <img src="{{ res.img_url }}" alt="预测图">
+                        </div>
+                        <a href="{{ res.csv_url }}" class="btn btn-outline-success rounded-pill btn-sm px-4">
+                            <i class="bi bi-download me-1"></i>下载 CSV
+                        </a>
+                    {% else %}
+                        <div class="text-danger small">
+                            <i class="bi bi-exclamation-triangle-fill me-1"></i>错误：{{ res.error }}
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <div class="col-12">
+            <div class="empty-state">
+                <i class="bi bi-cloud-slash"></i>
+                <h5 class="fw-normal">未上传任何文件或全部处理失败</h5>
+                <p class="text-muted small">请返回预测中心重新上传数据</p>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <div class="mt-5 d-flex gap-3">
+        <a href="{{ url_for('predict_center') }}" class="btn btn-outline-secondary-custom">
+            <i class="bi bi-arrow-left me-2"></i>返回预测中心
+        </a>
+        <a href="{{ url_for('profile') }}" class="btn btn-outline-secondary-custom">
+            <i class="bi bi-clock-history me-2"></i>我的历史记录
+        </a>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>消息中心 - 智慧大棚</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <style>
+        body {
+            background: #f4f9f4;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+        }
+        .navbar-brand i { margin-right: 8px; }
+        .page-header {
+            margin-bottom: 1.8rem;
+        }
+        .page-header h2 {
+            font-weight: 600;
+            color: #1e3a1e;
+            border-left: 6px solid #2e7d32;
+            padding-left: 1rem;
+        }
+        .card-custom {
+            border: none;
+            border-radius: 24px;
+            background: white;
+            box-shadow: 0 12px 28px rgba(0, 30, 0, 0.04);
+            margin-bottom: 1.8rem;
+            overflow: hidden;
+        }
+        .card-header-custom {
+            background: white;
+            border-bottom: 1px solid rgba(46, 125, 50, 0.15);
+            padding: 1.1rem 1.5rem;
+            font-weight: 700;
+            color: #1e3a1e;
+        }
+        .card-header-custom i {
+            color: #2e7d32;
+            margin-right: 8px;
+        }
+        .btn-send {
+            background: #2e7d32;
+            border: none;
+            border-radius: 40px;
+            padding: 0.6rem 1.2rem;
+            font-weight: 600;
+            box-shadow: 0 6px 12px rgba(46, 125, 50, 0.2);
+            transition: all 0.2s;
+            color: white;
+        }
+        .btn-send:hover {
+            background: #1b5e20;
+            transform: translateY(-2px);
+            box-shadow: 0 10px 18px rgba(46, 125, 50, 0.3);
+        }
+        .msg-item {
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid #f0f4f0;
+            transition: background 0.15s;
+        }
+        .msg-item:last-child {
+            border-bottom: none;
+        }
+        .msg-item:hover {
+            background: #fafdfa;
+        }
+        .msg-unread {
+            background: #e8f5e9;
+            border-left: 4px solid #2e7d32;
+        }
+        .msg-read {
+            color: #5a6a5a;
+        }
+        .user-list-item {
+            border: none;
+            border-radius: 16px;
+            padding: 0.7rem 1rem;
+            margin-bottom: 4px;
+            transition: all 0.15s;
+            color: #1e3a1e;
+        }
+        .user-list-item:hover {
+            background: #e8f5e9;
+        }
+        .badge-role {
+            background: #c8e6c9;
+            color: #1e3a1e;
+            font-weight: 500;
+            padding: 0.25rem 0.8rem;
+            border-radius: 30px;
+            font-size: 0.7rem;
+        }
+        .badge-unread {
+            background: #e74a3b;
+            color: white;
+            border-radius: 30px;
+            padding: 0.2rem 0.8rem;
+            font-size: 0.7rem;
+            font-weight: 500;
+        }
+        .badge-read {
+            background: #e0e0e0;
+            color: #5a6a5a;
+        }
+        .empty-state {
+            padding: 2.5rem;
+            text-align: center;
+            color: #8aa08a;
+        }
+        .empty-state i {
+            font-size: 2.8rem;
+            margin-bottom: 1rem;
+            opacity: 0.6;
+        }
+        .form-select, .form-control {
+            border-radius: 16px;
+            border: 1px solid #c5e1a5;
+            background-color: #fafdfa;
+            padding: 0.7rem 1rem;
+        }
+        .form-select:focus, .form-control:focus {
+            box-shadow: 0 0 0 3px rgba(46, 125, 50, 0.15);
+            border-color: #2e7d32;
+            background-color: white;
+        }
+        .message-timestamp {
+            font-size: 0.75rem;
+            color: #7a8a7a;
+        }
+        @media (max-width: 992px) {
+            .card-custom { margin-bottom: 1.2rem; }
+        }
+    </style>
+</head>
+<body>
+<nav class="navbar navbar-expand-lg navbar-dark bg-success">
+    <div class="container">
+        <a class="navbar-brand" href="{{ url_for('home') }}">
+            <i class="bi bi-flower1"></i> 智慧大棚
+        </a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav ms-auto">
+                <li class="nav-item"><a class="nav-link" href="{{ url_for('home') }}"><i class="bi bi-house"></i> 首页</a></li>
+                <li class="nav-item"><a class="nav-link" href="{{ url_for('predict_center') }}"><i class="bi bi-graph-up"></i> 预测中心</a></li>
+                <li class="nav-item"><a class="nav-link active" href="{{ url_for('messages') }}"><i class="bi bi-chat-dots"></i> 消息</a></li>
+                <li class="nav-item"><a class="nav-link" href="{{ url_for('profile') }}"><i class="bi bi-person-circle"></i> 个人中心</a></li>
+                {% if current_user.role in ['admin', 'operator'] %}
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                        <i class="bi bi-shield-lock"></i> 管理
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li><a class="dropdown-item" href="{{ url_for('admin_datafiles') }}"><i class="bi bi-folder"></i> 数据文件</a></li>
+                        <li><a class="dropdown-item" href="{{ url_for('admin_history') }}"><i class="bi bi-clock-history"></i> 预测历史</a></li>
+                        {% if current_user.role == 'admin' %}
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="{{ url_for('admin_users') }}"><i class="bi bi-people"></i> 用户管理</a></li>
+                        <li><a class="dropdown-item" href="{{ url_for('admin_settings') }}"><i class="bi bi-gear"></i> 系统设置</a></li>
+                        <li><a class="dropdown-item" href="{{ url_for('admin_logs') }}"><i class="bi bi-journal-text"></i> 登录日志</a></li>
+                        {% endif %}
+                    </ul>
+                </li>
+                {% endif %}
+                <li class="nav-item"><a class="nav-link" href="{{ url_for('logout') }}"><i class="bi bi-box-arrow-right"></i> 退出</a></li>
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<div class="container mt-4">
+    <div class="page-header">
+        <h2><i class="bi bi-chat-dots-fill me-2"></i>消息中心</h2>
+    </div>
+
+    <div class="row g-4">
+        <!-- 左侧：发送消息 + 用户列表 -->
+        <div class="col-lg-4">
+            <!-- 发送新消息卡片 -->
+            <div class="card-custom">
+                <div class="card-header-custom">
+                    <i class="bi bi-pencil-square"></i> 发送新消息
+                </div>
+                <div class="card-body p-4">
+                    <form method="POST" action="{{ url_for('send_message') }}">
+                        <div class="mb-3">
+                            <label for="receiver" class="form-label fw-semibold small text-secondary">收件人</label>
+                            <select class="form-select" id="receiver" name="receiver" required>
+                                <option value="" disabled selected>-- 选择用户 --</option>
+                                {% for u in users %}
+                                    <option value="{{ u.username }}">{{ u.username }} ({{ u.role }})</option>
+                                {% endfor %}
+                            </select>
+                            <div class="form-text small"><i class="bi bi-info-circle me-1"></i>只能发送给其他注册用户</div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="content" class="form-label fw-semibold small text-secondary">消息内容</label>
+                            <textarea class="form-control" id="content" name="content" rows="4" required placeholder="写下你想说的话..."></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-send w-100">
+                            <i class="bi bi-send-fill me-2"></i>发送消息
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- 用户列表卡片 -->
+            <div class="card-custom">
+                <div class="card-header-custom">
+                    <i class="bi bi-people-fill"></i> 在线用户 · 共 {{ users|length }} 人
+                </div>
+                <div class="card-body p-2">
+                    <div class="list-group list-group-flush">
+                        {% for u in users %}
+                            <a href="#" class="list-group-item user-list-item user-item d-flex align-items-center" data-username="{{ u.username }}">
+                                <i class="bi bi-person-circle me-2 text-success"></i>
+                                <span class="me-auto">{{ u.username }}</span>
+                                <span class="badge-role">
+                                    {% if u.role == 'admin' %}管理员
+                                    {% elif u.role == 'operator' %}操作员
+                                    {% elif u.role == 'viewer' %}查看者
+                                    {% else %}用户{% endif %}
+                                </span>
+                            </a>
+                        {% else %}
+                            <div class="empty-state py-3">
+                                <i class="bi bi-person-x fs-2"></i>
+                                <p class="mb-0 small">暂无其他用户</p>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 右侧：收件箱 + 发件箱 -->
+        <div class="col-lg-8">
+            <!-- 收件箱 -->
+            <div class="card-custom">
+                <div class="card-header-custom d-flex justify-content-between align-items-center">
+                    <span><i class="bi bi-inbox-fill"></i> 收件箱</span>
+                    <span class="badge bg-success rounded-pill px-3 py-2">{{ received|length }} 条</span>
+                </div>
+                <div class="card-body p-0">
+                    {% if received %}
+                        <div class="list-group list-group-flush">
+                            {% for msg in received %}
+                                <div class="msg-item {% if not msg.is_read %}msg-unread{% else %}msg-read{% endif %}">
+                                    <div class="d-flex justify-content-between align-items-start">
+                                        <div class="d-flex align-items-center">
+                                            <i class="bi bi-person-circle fs-5 me-2 text-success"></i>
+                                            <strong class="me-2">{{ msg.sender.username }}</strong>
+                                            {% if not msg.is_read %}
+                                                <span class="badge-unread"><i class="bi bi-dot me-1"></i>未读</span>
+                                            {% endif %}
+                                        </div>
+                                        <small class="message-timestamp">
+                                            <i class="bi bi-clock me-1"></i>{{ msg.timestamp.strftime('%m-%d %H:%M') }}
+                                        </small>
+                                    </div>
+                                    <div class="mt-2 ps-4">{{ msg.content }}</div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="empty-state">
+                            <i class="bi bi-inbox"></i>
+                            <h6 class="fw-normal">暂无收到消息</h6>
+                            <p class="text-muted small">当有人给您发消息时，会显示在这里</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- 发件箱 -->
+            <div class="card-custom">
+                <div class="card-header-custom">
+                    <i class="bi bi-send-fill"></i> 发件箱
+                </div>
+                <div class="card-body p-0">
+                    {% if sent %}
+                        <div class="list-group list-group-flush">
+                            {% for msg in sent %}
+                                <div class="msg-item">
+                                    <div class="d-flex justify-content-between align-items-start">
+                                        <div class="d-flex align-items-center">
+                                            <i class="bi bi-person-circle fs-5 me-2 text-secondary"></i>
+                                            <strong class="me-2">收件人：{{ msg.receiver.username }}</strong>
+                                        </div>
+                                        <small class="message-timestamp">
+                                            <i class="bi bi-clock me-1"></i>{{ msg.timestamp.strftime('%m-%d %H:%M') }}
+                                        </small>
+                                    </div>
+                                    <div class="mt-2 ps-4">{{ msg.content }}</div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="empty-state">
+                            <i class="bi bi-send"></i>
+                            <h6 class="fw-normal">暂无已发送消息</h6>
+                            <p class="text-muted small">您发送的消息会显示在这里</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    const userItems = document.querySelectorAll('.user-item');
+    const receiverSelect = document.getElementById('receiver');
+    userItems.forEach(item => {
+        item.addEventListener('click', function(e) {
+            e.preventDefault();
+            const username = this.getAttribute('data-username');
+            for (let i = 0; i < receiverSelect.options.length; i++) {
+                if (receiverSelect.options[i].value === username) {
+                    receiverSelect.selectedIndex = i;
+                    break;
+                }
+            }
+        });
+    });
+</script>
+</body>
+</html>
