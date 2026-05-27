@@ -124,15 +124,15 @@ def main():
     }).reset_index()
 
     # 重命名列
-    grouped.columns = ['时间', '平均温度', '平均湿度', '平均光照强度', '平均风向', '平均风速', '平均降雨量']
+    grouped.columns = ['时间', '温度', '湿度', '光照强度', '风向', '风速', '降雨量']
 
-    # 平均值保留两位小数
-    grouped['平均温度'] = grouped['平均温度'].round(2)
-    grouped['平均湿度'] = grouped['平均湿度'].round(2)
-    grouped['平均光照强度'] = grouped['平均光照强度'].round(2)
-    grouped['平均风向'] = grouped['平均风向'].round(2)
-    grouped['平均风速'] = grouped['平均风速'].round(2)
-    grouped['平均降雨量'] = grouped['平均降雨量'].round(2)
+    # 数值保留两位小数
+    grouped['温度'] = grouped['温度'].round(2)
+    grouped['湿度'] = grouped['湿度'].round(2)
+    grouped['光照强度'] = grouped['光照强度'].round(2)
+    grouped['风向'] = grouped['风向'].round(2)
+    grouped['风速'] = grouped['风速'].round(2)
+    grouped['降雨量'] = grouped['降雨量'].round(2)
 
     # 按时间排序
     grouped = grouped.sort_values('时间').reset_index(drop=True)
@@ -150,12 +150,12 @@ def main():
     print(f"总数据条数（原始）: {len(combined_df)}")
     print(f"时间点数（去重后）: {len(grouped)}")
     print(f"时间范围: {grouped['时间'].min()} 至 {grouped['时间'].max()}")
-    print(f"总体平均温度: {grouped['平均温度'].mean():.2f}°C")
-    print(f"总体平均湿度: {grouped['平均湿度'].mean():.2f}%")
-    print(f"总体平均光照强度: {grouped['平均光照强度'].mean():.2f}")
-    print(f"总体平均风向: {grouped['平均风向'].mean():.2f}°")
-    print(f"总体平均风速: {grouped['平均风速'].mean():.2f}m/s")
-    print(f"总体平均降雨量: {grouped['平均降雨量'].mean():.2f}mm")
+    print(f"总体平均温度: {grouped['温度'].mean():.2f}°C")
+    print(f"总体平均湿度: {grouped['湿度'].mean():.2f}%")
+    print(f"总体平均光照强度: {grouped['光照强度'].mean():.2f}")
+    print(f"总体平均风向: {grouped['风向'].mean():.2f}°")
+    print(f"总体平均风速: {grouped['风速'].mean():.2f}m/s")
+    print(f"总体平均降雨量: {grouped['降雨量'].mean():.2f}mm")
 
     print("\n数据预处理完成!")
 

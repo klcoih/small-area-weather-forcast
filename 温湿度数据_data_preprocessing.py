@@ -192,11 +192,11 @@ def main():
     }).reset_index()
     
     # 重命名列
-    grouped.columns = ['时间', '平均温度', '平均湿度']
+    grouped.columns = ['时间', '温度', '湿度']
     
-    # 平均值保留两位小数
-    grouped['平均温度'] = grouped['平均温度'].round(2)
-    grouped['平均湿度'] = grouped['平均湿度'].round(2)
+    # 数值保留两位小数
+    grouped['温度'] = grouped['温度'].round(2)
+    grouped['湿度'] = grouped['湿度'].round(2)
     
     # 按时间排序
     grouped = grouped.sort_values('时间').reset_index(drop=True)
@@ -214,8 +214,8 @@ def main():
     print(f"总数据条数（原始）: {len(combined_df)}")
     print(f"时间点数（去重后）: {len(grouped)}")
     print(f"时间范围: {grouped['时间'].min()} 至 {grouped['时间'].max()}")
-    print(f"总体平均温度: {grouped['平均温度'].mean():.2f}°C")
-    print(f"总体平均湿度: {grouped['平均湿度'].mean():.2f}%")
+    print(f"总体平均温度: {grouped['温度'].mean():.2f}°C")
+    print(f"总体平均湿度: {grouped['湿度'].mean():.2f}%")
     
     print("\n数据预处理完成!")
 

@@ -1,5 +1,7 @@
 # 虚拟环境
 .venv/
+venv/
+env/
 
 # IDE 配置
 .idea/
@@ -13,7 +15,11 @@ __pycache__/
 # 日志文件
 *.log
 
-# 数据文件
-*.csv
-*.xlsx
+# 数据库文件
 *.db
+
+# 预处理数据（运行时生成）
+preprocessed_data/
+
+# AutoResearch 数据（运行时生成）
+autoresearch_data/
