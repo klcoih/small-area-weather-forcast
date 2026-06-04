@@ -358,14 +358,14 @@ def load_from_pipeline() -> Dict[str, Dict[str, pd.DataFrame]]:
     Returns:
         同 load_from_csv
     """
-    from data_preprocessing import PreprocessingPipeline
-    from greenhouse_data_loader import GreenhouseDataLoader
-    from outdoor_weather_loader import OutdoorWeatherLoader
+    from core.data_preprocessing import PreprocessingPipeline
+    from core.greenhouse_data_loader import GreenhouseDataLoader
+    from core.outdoor_weather_loader import OutdoorWeatherLoader
 
     pipeline = PreprocessingPipeline(output_dir=DATA_DIR)
 
-    gh_path = os.path.join(CURRENT_DIR, '天气数据', '温湿度数据', '温湿度数据.csv')
-    ow_path = os.path.join(CURRENT_DIR, '天气数据', '宣威市尚营种气象', '宣威市尚营种气象.csv')
+    gh_path = os.path.join(CURRENT_DIR, '..', 'data', '天气数据', '温湿度数据', '温湿度数据.csv')
+    ow_path = os.path.join(CURRENT_DIR, '..', 'data', '天气数据', '宣威市尚营种气象', '宣威市尚营种气象.csv')
 
     gh_loader = GreenhouseDataLoader(gh_path)
     gh_loader.load(); gh_loader.check_quality(); gh_loader.standardize()

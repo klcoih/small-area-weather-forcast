@@ -210,6 +210,8 @@ class GreenhouseDataLoader:
 
     使用示例:
         loader = GreenhouseDataLoader('天气数据/温湿度数据/温湿度数据.csv')
+        # 如果从项目根运行:
+        # loader = GreenhouseDataLoader('../天气数据/温湿度数据/温湿度数据.csv')
         loader.load()
 
         # 质量检查

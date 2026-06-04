@@ -16,6 +16,8 @@ LSTM 模型（PyTorch nn.LSTM）
 特殊:
   - 风向: 输出层2神经元 (sin, cos)
   - 降雨: 双输出头 (分类 + 回归)
+
+注: 超过 MAX_LSTM_SAMPLES 时自动截取最近 N 条
 """
 
 import time
@@ -24,6 +26,28 @@ import numpy as np
 import copy
 
 logger = logging.getLogger(__name__)
+
+MAX_LSTM_SAMPLES = 20000
+MIN_LSTM_TRAIN = 100
+
+
+def _get_device():
+    """自动检测可用设备"""
+    try:
+        import torch
+        if torch.cuda.is_available():
+            return 'cuda'
+    except ImportError:
+        pass
+    return 'cpu'
+
+
+def _adaptive_seq_length(train_len, val_len, requested_seq_len):
+    """根据数据量自适应调整 seq_length，确保 train 和 val 至少各有 1 个序列"""
+    max_safe = min(train_len - 1, val_len - 1) if val_len > 0 else train_len - 1
+    if max_safe < 4:
+        return max(1, max_safe)
+    return min(requested_seq_len, max_safe, train_len // 3)
 
 
 class EarlyStopping:
@@ -175,9 +199,13 @@ class LSTMModel:
         """预测"""
         import torch
 
+        if hasattr(X, 'values'):
+            X = X.values.astype(np.float32)
+        else:
+            X = np.asarray(X, dtype=np.float32)
+
         self.model.eval()
         if len(X.shape) == 2:
-            n = len(X)
             batch = torch.tensor(X, dtype=torch.float32).unsqueeze(0).to(self.device)
         else:
             batch = torch.tensor(X, dtype=torch.float32).to(self.device)
@@ -217,10 +245,42 @@ def train_lstm_regression(X_train, y_train, X_val, y_val, params=None):
     if params is None:
         params = {}
 
+    if len(X_train) > MAX_LSTM_SAMPLES:
+        logger.warning(
+            f"LSTM 数据量 {len(X_train)} 超过上限 {MAX_LSTM_SAMPLES}，"
+            f"截取最近 {MAX_LSTM_SAMPLES} 条"
+        )
+        if hasattr(X_train, 'iloc'):
+            X_train = X_train.iloc[-MAX_LSTM_SAMPLES:].reset_index(drop=True)
+        else:
+            X_train = X_train[-MAX_LSTM_SAMPLES:]
+        y_train = np.array(y_train[-MAX_LSTM_SAMPLES:], dtype=float)
+        if hasattr(X_val, 'iloc'):
+            X_val = X_val.iloc[-min(len(X_val), MAX_LSTM_SAMPLES // 8):].reset_index(drop=True)
+        else:
+            X_val = X_val[-min(len(X_val), MAX_LSTM_SAMPLES // 8):]
+        y_val = np.array(y_val[-min(len(y_val), MAX_LSTM_SAMPLES // 8):], dtype=float)
+
+    if len(X_train) < MIN_LSTM_TRAIN:
+        logger.warning(f"LSTM 训练数据 {len(X_train)} 不足 {MIN_LSTM_TRAIN}，使用简单平均预测")
+        y_pred = np.full(len(y_val), np.mean(y_train))
+        y_val_arr = np.array(y_val, dtype=float).flatten()
+        return y_pred, {
+            'mae': mae(y_val_arr, y_pred),
+            'rmse': rmse(y_val_arr, y_pred),
+            'r2': r2_score(y_val_arr, y_pred),
+        }, 0.0
+
     input_size = X_train.shape[1] if X_train.ndim == 2 else X_train.shape[2]
-    seq_length = params.get('seq_length', 96)
+    seq_length = _adaptive_seq_length(
+        len(X_train), len(X_val),
+        params.get('seq_length', 96)
+    )
     batch_size = params.get('batch_size', 64)
-    epochs = params.get('epochs', 30)
+    epochs = params.get('epochs', 20)
+    device = params.get('device', _get_device())
+
+    logger.info(f"LSTM 自适应 seq_length={seq_length} (train={len(X_train)}, val={len(X_val)}, device={device})")
 
     t0 = time.time()
     model = LSTMModel(
@@ -230,7 +290,7 @@ def train_lstm_regression(X_train, y_train, X_val, y_val, params=None):
         dropout=params.get('dropout', 0.2),
         output_size=1,
         learning_rate=params.get('learning_rate', 0.001),
-        device=params.get('device', 'cpu'),
+        device=device,
     )
     model.fit(X_train, y_train, X_val, y_val,
               seq_length=seq_length, batch_size=batch_size, epochs=epochs)
@@ -263,8 +323,29 @@ def train_lstm_wind(X_train, y_train_sin, y_train_cos,
     if params is None:
         params = {}
 
+    if len(X_train) > MAX_LSTM_SAMPLES:
+        logger.warning(f"LSTM 风向数据量 {len(X_train)} 超过上限，截取 {MAX_LSTM_SAMPLES} 条")
+        if hasattr(X_train, 'iloc'):
+            X_train = X_train.iloc[-MAX_LSTM_SAMPLES:].reset_index(drop=True)
+        else:
+            X_train = X_train[-MAX_LSTM_SAMPLES:]
+        y_train_sin = np.array(y_train_sin[-MAX_LSTM_SAMPLES:], dtype=float)
+        y_train_cos = np.array(y_train_cos[-MAX_LSTM_SAMPLES:], dtype=float)
+        if hasattr(X_val, 'iloc'):
+            X_val = X_val.iloc[-min(len(X_val), MAX_LSTM_SAMPLES // 8):].reset_index(drop=True)
+        else:
+            X_val = X_val[-min(len(X_val), MAX_LSTM_SAMPLES // 8):]
+        y_val_sin = np.array(y_val_sin[-min(len(y_val_sin), MAX_LSTM_SAMPLES // 8):], dtype=float)
+        y_val_cos = np.array(y_val_cos[-min(len(y_val_cos), MAX_LSTM_SAMPLES // 8):], dtype=float)
+
     input_size = X_train.shape[1] if X_train.ndim == 2 else X_train.shape[2]
-    seq_length = params.get('seq_length', 96)
+    seq_length = _adaptive_seq_length(
+        len(X_train), len(X_val),
+        params.get('seq_length', 96)
+    )
+    device = params.get('device', _get_device())
+
+    logger.info(f"LSTM风向 自适应 seq_length={seq_length} (device={device})")
 
     y_train = np.column_stack([np.array(y_train_sin), np.array(y_train_cos)])
 
@@ -276,11 +357,11 @@ def train_lstm_wind(X_train, y_train_sin, y_train_cos,
         dropout=params.get('dropout', 0.2),
         output_size=2,
         learning_rate=params.get('learning_rate', 0.001),
-        device=params.get('device', 'cpu'),
+        device=device,
     )
     model.fit(X_train, y_train, X_val, np.column_stack([np.array(y_val_sin), np.array(y_val_cos)]),
               seq_length=seq_length, batch_size=params.get('batch_size', 64),
-              epochs=params.get('epochs', 30))
+              epochs=params.get('epochs', 20))
     y_pred = model.predict(X_val)
     train_time = time.time() - t0
 
@@ -313,11 +394,52 @@ def train_lstm_rainfall_two_stage(X_train, y_train_flag, y_train_rain,
     if params is None:
         params = {}
 
+    if len(X_train) > MAX_LSTM_SAMPLES:
+        logger.warning(f"LSTM 降雨数据量 {len(X_train)} 超过上限，截取 {MAX_LSTM_SAMPLES} 条")
+        if hasattr(X_train, 'iloc'):
+            X_train = X_train.iloc[-MAX_LSTM_SAMPLES:].reset_index(drop=True)
+        else:
+            X_train = X_train[-MAX_LSTM_SAMPLES:]
+        y_train_flag = np.array(y_train_flag[-MAX_LSTM_SAMPLES:], dtype=float)
+        y_train_rain = np.array(y_train_rain[-MAX_LSTM_SAMPLES:], dtype=float)
+        if hasattr(X_val, 'iloc'):
+            X_val = X_val.iloc[-min(len(X_val), MAX_LSTM_SAMPLES // 8):].reset_index(drop=True)
+        else:
+            X_val = X_val[-min(len(X_val), MAX_LSTM_SAMPLES // 8):]
+        y_val_flag = np.array(y_val_flag[-min(len(y_val_flag), MAX_LSTM_SAMPLES // 8):], dtype=float)
+        y_val_rain = np.array(y_val_rain[-min(len(y_val_rain), MAX_LSTM_SAMPLES // 8):], dtype=float)
+
+    y_train_flag_arr = np.array(y_train_flag, dtype=float)
+    rain_ratio = y_train_flag_arr.mean()
+    if rain_ratio < 0.001:
+        logger.warning(f"训练数据中降雨事件极少 (rain_ratio={rain_ratio:.6f})，LSTM 降雨两阶段跳过")
+        y_val_f = np.array(y_val_flag).flatten()
+        y_prob = np.full(len(y_val_f), 0.0)
+        y_pred_rain = np.full(len(y_val_f), 0.0)
+        y_pred_binary = np.zeros(len(y_val_f), dtype=int)
+        cls_metrics = {
+            'auc': auc(y_val_f, y_prob) if y_val_f.sum() > 0 else 0.5,
+            'brier': brier_score(y_val_f, y_prob),
+            'csi': csi(y_val_f, y_pred_binary),
+        }
+        rain_mask = y_val_f == 1
+        rain_mae = mae(np.array(y_val_rain).flatten()[rain_mask], y_pred_rain[rain_mask]) if rain_mask.sum() > 0 else 0.0
+        return (y_prob, y_pred_rain), {
+            'classification': cls_metrics,
+            'regression': {'mae_rain_only': rain_mae},
+        }, 0.0
+
     input_size = X_train.shape[1] if X_train.ndim == 2 else X_train.shape[2]
-    seq_length = params.get('seq_length', 96)
+    seq_length = _adaptive_seq_length(
+        len(X_train), len(X_val),
+        params.get('seq_length', 96)
+    )
+    device = params.get('device', _get_device())
+
+    logger.info(f"LSTM降雨两阶段 seq_length={seq_length} (device={device}, rain_ratio={rain_ratio:.4f})")
 
     y_train_combined = np.column_stack([
-        np.array(y_train_flag, dtype=float),
+        y_train_flag_arr,
         np.array(y_train_rain, dtype=float)
     ])
 
@@ -329,7 +451,7 @@ def train_lstm_rainfall_two_stage(X_train, y_train_flag, y_train_rain,
         dropout=params.get('dropout', 0.2),
         output_size=2,
         learning_rate=params.get('learning_rate', 0.001),
-        device=params.get('device', 'cpu'),
+        device=device,
     )
 
     y_val_combined = np.column_stack([
@@ -339,7 +461,7 @@ def train_lstm_rainfall_two_stage(X_train, y_train_flag, y_train_rain,
 
     model.fit(X_train, y_train_combined, X_val, y_val_combined,
               seq_length=seq_length, batch_size=params.get('batch_size', 64),
-              epochs=params.get('epochs', 30))
+              epochs=params.get('epochs', 20))
 
     y_pred = model.predict(X_val)
     train_time = time.time() - t0

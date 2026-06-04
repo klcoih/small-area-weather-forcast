@@ -316,6 +316,8 @@ class OutdoorWeatherLoader:
 
     使用示例:
         loader = OutdoorWeatherLoader('天气数据/宣威市尚营种气象/宣威市尚营种气象.csv')
+        # 如果从项目根运行:
+        # loader = OutdoorWeatherLoader('../天气数据/宣威市尚营种气象/宣威市尚营种气象.csv')
         loader.load()
         quality_report = loader.check_quality()
         df_std = loader.standardize()

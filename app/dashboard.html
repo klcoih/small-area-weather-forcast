@@ -1,0 +1,815 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>小区域气象预测系统</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+:root {
+  --bg: #0f1923; --card-bg: #1a2736; --card-border: #2a3a4a;
+  --text: #e0e6ed; --text-dim: #8899aa;
+  --accent: #00b4d8; --accent2: #48cae4;
+  --green: #2ecc71; --orange: #f39c12; --red: #e74c3c;
+  --gh: #00b4d8; --ow: #f39c12;
+  --font: 'Segoe UI', 'Microsoft YaHei', sans-serif;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:var(--font); background:var(--bg); color:var(--text); min-height:100vh; }
+.header {
+  background:linear-gradient(135deg,#0a1628,#1a2736 50%,#0f1923);
+  border-bottom:1px solid var(--card-border); padding:14px 28px;
+  display:flex; justify-content:space-between; align-items:center;
+  position:sticky; top:0; z-index:100;
+}
+.header-left { display:flex; align-items:center; gap:14px; }
+.header-logo { width:38px; height:38px; background:linear-gradient(135deg,var(--accent),var(--accent2)); border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:19px; color:#fff; }
+.header h1 { font-size:20px; font-weight:600; }
+.header-subtitle { font-size:11px; color:var(--text-dim); }
+.header-right { display:flex; align-items:center; gap:16px; font-size:12px; }
+.status-dot { width:9px; height:9px; border-radius:50%; background:var(--green); box-shadow:0 0 6px var(--green); animation:pulse 2s infinite; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+.tab-nav {
+  display:flex; gap:0; background:var(--card-bg);
+  border-bottom:1px solid var(--card-border); padding:0 28px;
+  position:sticky; top:68px; z-index:99;
+}
+.tab-btn {
+  padding:12px 24px; border:none; background:none; color:var(--text-dim);
+  cursor:pointer; font-size:14px; font-family:var(--font);
+  border-bottom:2px solid transparent; transition:all .2s;
+}
+.tab-btn:hover { color:var(--text); }
+.tab-btn.active { color:var(--accent); border-bottom-color:var(--accent); font-weight:600; }
+
+.container { max-width:1500px; margin:0 auto; padding:20px 28px; }
+.tab-content { display:none; }
+.tab-content.active { display:block; }
+
+.cards-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:14px; }
+.card {
+  background:var(--card-bg); border:1px solid var(--card-border);
+  border-radius:10px; padding:16px 20px; position:relative; overflow:hidden;
+}
+.card::before { content:''; position:absolute; top:0; left:0; width:100%; height:2px; }
+.card.gh::before { background:linear-gradient(90deg,var(--gh),transparent); }
+.card.ow::before { background:linear-gradient(90deg,var(--ow),transparent); }
+.card-label { font-size:11px; color:var(--text-dim); text-transform:uppercase; letter-spacing:.5px; margin-bottom:4px; }
+.card-value { font-size:36px; font-weight:700; letter-spacing:-1px; }
+.card-unit { font-size:16px; font-weight:400; color:var(--text-dim); margin-left:3px; }
+.card-badge { position:absolute; top:12px; right:16px; font-size:10px; padding:2px 8px; border-radius:8px; }
+.card-badge.gh { background:rgba(0,180,216,.15); color:var(--gh); }
+.card-badge.ow { background:rgba(243,156,18,.15); color:var(--ow); }
+.card-gauge { width:80px; height:80px; margin:8px auto 0; position:relative; }
+.card-gauge-center { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); text-align:center; font-size:13px; font-weight:700; }
+
+.section-title {
+  font-size:16px; font-weight:600; margin:24px 0 12px; padding-left:12px;
+  border-left:3px solid var(--accent);
+}
+.section-title.gh { border-left-color:var(--gh); }
+.section-title.ow { border-left-color:var(--ow); }
+.chart-card {
+  background:var(--card-bg); border:1px solid var(--card-border);
+  border-radius:10px; padding:14px 18px; margin-bottom:14px;
+}
+.chart-card-title { font-size:13px; font-weight:600; color:var(--text); margin-bottom:8px; }
+.chart-card-body { height:300px; position:relative; }
+.chart-card-body canvas { display:block; position:absolute; top:0; left:0; width:100%; height:100%; }
+.charts-2col { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+
+.range-bar { display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap; }
+.range-btn {
+  padding:6px 16px; border:1px solid var(--card-border); border-radius:6px;
+  background:var(--card-bg); color:var(--text-dim); cursor:pointer;
+  font-size:12px; font-family:var(--font); transition:all .2s;
+}
+.range-btn:hover { border-color:var(--accent); color:var(--text); }
+.range-btn.active { background:rgba(0,180,216,.15); border-color:var(--accent); color:var(--accent); }
+
+.upload-area {
+  border:2px dashed var(--card-border); border-radius:12px;
+  padding:40px; text-align:center; cursor:pointer; transition:all .2s;
+  margin-bottom:16px;
+}
+.upload-area:hover { border-color:var(--accent); background:rgba(0,180,216,.03); }
+.upload-icon { font-size:40px; margin-bottom:10px; }
+.upload-text { color:var(--text-dim); font-size:14px; }
+.upload-hint { color:var(--text-dim); font-size:11px; margin-top:6px; }
+textarea.upload-input {
+  width:100%; height:160px; background:var(--bg); border:1px solid var(--card-border);
+  border-radius:8px; color:var(--text); font-family:Consolas,monospace;
+  font-size:12px; padding:12px; resize:vertical;
+}
+.btn {
+  padding:10px 28px; border:none; border-radius:8px; cursor:pointer;
+  font-size:14px; font-family:var(--font); transition:all .2s;
+}
+.btn-primary { background:var(--accent); color:#fff; }
+.btn-primary:hover { background:var(--accent2); }
+.btn-secondary { background:var(--card-bg); color:var(--text); border:1px solid var(--card-border); }
+.btn-secondary:hover { border-color:var(--accent); }
+.btn:disabled { opacity:.5; cursor:not-allowed; }
+
+.upload-status { margin-top:12px; padding:10px 16px; border-radius:8px; font-size:13px; display:none; }
+.upload-status.success { background:rgba(46,204,113,.12); color:var(--green); border:1px solid rgba(46,204,113,.25); display:block; }
+.upload-status.error { background:rgba(231,76,60,.12); color:var(--red); border:1px solid rgba(231,76,60,.25); display:block; }
+
+.spinner {
+  width:40px; height:40px; border:3px solid var(--card-border);
+  border-top:3px solid var(--accent); border-radius:50%;
+  animation:spin .7s linear infinite; margin:60px auto;
+}
+@keyframes spin { to{transform:rotate(360deg)} }
+.loading-text { text-align:center; color:var(--text-dim); margin-top:10px; font-size:13px; }
+
+.footer { text-align:center; padding:20px; color:var(--text-dim); font-size:11px; border-top:1px solid var(--card-border); margin-top:30px; }
+.hidden { display:none !important; }
+</style>
+</head>
+<body>
+
+<header class="header">
+  <div class="header-left">
+    <div class="header-logo">&#9925;</div>
+    <div>
+      <h1>小区域气象预测系统</h1>
+      <div class="header-subtitle">大棚 & 室外 · 15分钟级实时预测</div>
+    </div>
+  </div>
+  <div class="header-right">
+    <span class="status-dot" id="statusDot"></span>
+    <span id="statusText">运行中</span>
+    <span id="realtimeClock" style="font-weight:600;color:var(--text-bright);font-size:13px">--:--:--</span>
+    <span id="lastUpdate" style="color:var(--text-dim);font-size:11px">数据更新:--</span>
+    <span style="color:var(--text-dim);font-size:11px" id="pollCountdown"></span>
+  </div>
+</header>
+
+<nav class="tab-nav">
+  <button class="tab-btn active" onclick="switchTab('live', this)">实时监控</button>
+  <button class="tab-btn" onclick="switchTab('history', this)">历史趋势</button>
+  <button class="tab-btn" onclick="switchTab('forecast', this)">未来预测</button>
+  <button class="tab-btn" onclick="switchTab('upload', this)">数据上传</button>
+</nav>
+
+<div class="container">
+
+  <div class="tab-content active" id="tab-live">
+    <div class="section-title gh">大棚实时状态</div>
+    <div class="cards-grid" id="ghCards"></div>
+    <div class="section-title ow" style="margin-top:24px">室外实时状态</div>
+    <div class="cards-grid" id="owCards"></div>
+  </div>
+
+  <div class="tab-content" id="tab-history">
+    <div id="historyContent"><div class="spinner"></div><div class="loading-text">加载历史数据...</div></div>
+  </div>
+
+  <div class="tab-content" id="tab-forecast">
+    <div style="display:flex;gap:12px;align-items:center;margin-bottom:16px">
+      <span id="fcStatus" style="font-size:13px;color:var(--text-dim)"></span>
+      <span style="font-size:11px;color:var(--text-dim)" id="fcNextRefresh"></span>
+    </div>
+    <div id="forecastContent"><div class="spinner"></div><div class="loading-text">自动生成24小时预测中...</div></div>
+  </div>
+
+  <div class="tab-content" id="tab-upload">
+    <div style="max-width:700px">
+      <p style="font-size:13px;color:var(--text-dim);margin-bottom:16px">
+        上传格式与原始数据文件一致，支持以下两种 CSV 格式
+      </p>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px">
+        <div style="background:var(--card-bg);border:1px solid var(--card-border);border-radius:8px;padding:12px">
+          <div style="font-size:12px;font-weight:600;color:var(--gh);margin-bottom:6px">大棚数据 (温湿度数据.csv)</div>
+          <div style="font-size:11px;color:var(--text-dim);font-family:Consolas,monospace;line-height:1.6">
+            序号,时间,温度,湿度<br>
+            1,2026-05-08 17:45:00,16.5,74.2<br>
+            2,2026-05-08 18:00:00,16.3,74.5
+          </div>
+        </div>
+        <div style="background:var(--card-bg);border:1px solid var(--card-border);border-radius:8px;padding:12px">
+          <div style="font-size:12px;font-weight:600;color:var(--ow);margin-bottom:6px">室外数据 (宣威市尚营种气象.csv)</div>
+          <div style="font-size:11px;color:var(--text-dim);font-family:Consolas,monospace;line-height:1.6">
+            序号,时间,温度,湿度,光照强度,风向,风速,降雨量<br>
+            1,2026-05-01 08:00:00,18.5,65,50000,180,2.1,0
+          </div>
+        </div>
+      </div>
+      <div class="upload-area" onclick="document.getElementById('fileInput').click()">
+        <div class="upload-icon">&#128229;</div>
+        <div class="upload-text">点击上传或拖拽文件到此处</div>
+        <div class="upload-hint">支持 CSV / JSON 格式</div>
+      </div>
+      <input type="file" id="fileInput" class="hidden" accept=".json,.csv" onchange="handleFileSelect(event)">
+      <div style="color:var(--text-dim);font-size:12px;margin-bottom:8px">或直接粘贴数据:</div>
+      <textarea class="upload-input" id="pasteInput" placeholder='序号,时间,温度,湿度&#10;1,2026-05-08 17:45:00,16.5,74.2'></textarea>
+      <div style="display:flex;gap:12px;margin-top:12px">
+        <button class="btn btn-primary" onclick="uploadData()">上传数据</button>
+        <button class="btn btn-secondary" onclick="document.getElementById('pasteInput').value='';document.getElementById('fileInput').value='';document.getElementById('uploadStatus').className='upload-status'">清空</button>
+      </div>
+      <div class="upload-status" id="uploadStatus"></div>
+    </div>
+  </div>
+
+</div>
+
+<div class="footer">小区域气象预测系统平台 &copy; 2026 | 基于 XGBoost 模型 | 15分钟级实时预测</div>
+
+<script>
+// ==================== GLOBALS ====================
+const API = '/api';
+let currentTab = 'live';
+let pollTimer = null;
+let pollSeconds = 0;
+let gaugeChartInstances = {};
+let forecastChartInstances = {};
+let historyChartInstances = {};
+let forecastData = null;
+let forecastRefreshSec = 0;
+let forecastComputing = false;
+let historyDataStore = {};
+
+function destroyCharts(store) {
+  for (let k in store) {
+    if (store[k] && store[k].destroy) store[k].destroy();
+    delete store[k];
+  }
+}
+
+// ==================== TAB SWITCHING ====================
+function switchTab(tab, el) {
+  currentTab = tab;
+  document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
+  document.querySelectorAll('.tab-content').forEach(function(c){ c.classList.remove('active'); });
+  document.getElementById('tab-' + tab).classList.add('active');
+  if (el) el.classList.add('active');
+
+  clearInterval(pollTimer); pollTimer = null; pollSeconds = 0;
+  document.getElementById('pollCountdown').textContent = '';
+
+  if (tab === 'live') {
+    refreshLive();
+    pollTimer = setInterval(pollTick, 1000);
+  } else if (tab === 'history') {
+    if (Object.keys(historyDataStore).length === 0) {
+      loadHistory();
+    } else {
+      renderHistory(historyDataStore);
+    }
+  } else if (tab === 'forecast') {
+    if (!forecastData) loadForecast();
+  }
+}
+
+function pollTick() {
+  pollSeconds++;
+  if (pollSeconds >= 30) {
+    pollSeconds = 0;
+    refreshLive();
+    if (currentTab === 'history') {
+      loadHistory();
+    }
+  }
+  document.getElementById('pollCountdown').textContent = '下次刷新:' + (30 - pollSeconds) + 's';
+}
+
+// ==================== LIVE TAB ====================
+function getColorTemp(c) {
+  if (c <= 0) return '#5dade2'; if (c <= 10) return '#48cae4';
+  if (c <= 20) return '#2ecc71'; if (c <= 28) return '#f39c12';
+  if (c <= 35) return '#e67e22'; return '#e74c3c';
+}
+function getColorHum(p) {
+  if (p < 30) return '#e74c3c'; if (p < 50) return '#f39c12';
+  if (p <= 80) return '#2ecc71'; if (p <= 95) return '#48cae4';
+  return '#3498db';
+}
+function getColorWind(s) {
+  if (s < 1) return '#7f8c8d'; if (s < 3) return '#2ecc71';
+  if (s < 6) return '#f39c12'; if (s < 10) return '#e67e22';
+  return '#e74c3c';
+}
+
+async function refreshLive() {
+  try {
+    var resp = await fetch(API + '/predict');
+    var data = await resp.json();
+    document.getElementById('lastUpdate').textContent = '数据更新:' + new Date(data.timestamp).toLocaleTimeString('zh-CN');
+    renderLiveCards(data.predictions);
+    document.getElementById('statusDot').style.background = 'var(--green)';
+    document.getElementById('statusDot').style.boxShadow = '0 0 6px var(--green)';
+    document.getElementById('statusText').textContent = '运行中';
+  } catch(e) {
+    document.getElementById('statusDot').style.background = '#e74c3c';
+    document.getElementById('statusDot').style.boxShadow = '0 0 6px #e74c3c';
+    document.getElementById('statusText').textContent = '异常';
+  }
+}
+
+function renderLiveCards(predictions) {
+  var gh = predictions.filter(function(p){ return p.target.startsWith('greenhouse'); });
+  var ow = predictions.filter(function(p){ return !p.target.startsWith('greenhouse'); });
+
+  document.getElementById('ghCards').innerHTML = gh.map(function(p){ return renderLiveCard(p,'gh'); }).join('');
+  document.getElementById('owCards').innerHTML = ow.map(function(p){ return renderLiveCard(p,'ow'); }).join('');
+
+  destroyCharts(gaugeChartInstances);
+
+  setTimeout(function() {
+    predictions.forEach(function(p) {
+      var canvas = document.getElementById('gauge_' + p.target);
+      if (!canvas) return;
+      var val = p.prediction >= 1000 ? p.prediction.toFixed(0) : p.prediction.toFixed(2);
+      var max = p.target.includes('temperature') ? 45 : p.target.includes('humidity') || p.target.includes('rainfall') ? 100 :
+                p.target.includes('wind_speed') ? 15 : p.target.includes('light') ? 120000 : 360;
+      var pct = Math.min(val / max, 1);
+      var color = p.target.includes('temperature') ? getColorTemp(p.prediction) :
+                  p.target.includes('humidity') ? getColorHum(p.prediction) :
+                  p.target.includes('wind_speed') ? getColorWind(p.prediction) : '#f39c12';
+      gaugeChartInstances[canvas.id] = new Chart(canvas, {
+        type: 'doughnut',
+        data: { datasets: [{ data: [pct * 100, 100 - pct * 100], backgroundColor: [color, '#1e3040'], borderWidth: 0, circumference: 270, rotation: 225 }] },
+        options: { responsive: true, maintainAspectRatio: true, cutout: '78%', plugins: { legend: { display: false }, tooltip: { enabled: false } } }
+      });
+    });
+  }, 100);
+}
+
+function renderLiveCard(p, cls) {
+  var isTemp = p.target.includes('temperature');
+  var isHum = p.target.includes('humidity');
+  var isWind = p.target.includes('wind_speed');
+  var isRain = p.target.includes('rainfall');
+  var color = isTemp ? getColorTemp(p.prediction) : isHum ? getColorHum(p.prediction) : isWind ? getColorWind(p.prediction) : isRain ? '#3498db' : '#f39c12';
+  var val = p.prediction >= 1000 ? p.prediction.toFixed(0) : p.prediction.toFixed(2);
+  var next15val = p.next15_prediction !== undefined && p.next15_prediction !== null
+    ? (p.next15_prediction >= 1000 ? p.next15_prediction.toFixed(0) : p.next15_prediction.toFixed(2))
+    : '--';
+  var extra = '';
+  if (p.target === 'rainfall') {
+    extra = '<div style="font-size:12px;margin-top:4px;color:' + (p.rain_probability >= 0.5 ? '#3498db' : 'var(--green)') + '">' +
+      (p.rain_probability >= 0.5 ? '预计有雨' : '预计无雨') + ' 概率 ' + ((p.rain_probability||0)*100).toFixed(1) + '%</div>';
+  }
+  if (p.target === 'wind_direction') {
+    var dirs = ['北','东北','东','东南','南','西南','西','西北'];
+    var dir = dirs[Math.round(p.prediction / 45) % 8];
+    extra = '<div style="font-size:12px;margin-top:4px;color:var(--text-dim)">' + dir + ' (' + p.prediction.toFixed(0) + '°)</div>';
+  }
+  return '<div class="card ' + cls + '">' +
+    '<div class="card-label">' + p.label + '</div>' +
+    '<div class="card-badge ' + cls + '">' + (cls==='gh'?'大棚':'室外') + '</div>' +
+    '<div class="card-value" style="color:' + color + '">' + val + '<span class="card-unit">' + p.unit + '</span></div>' +
+    '<div style="font-size:11px;color:var(--text-dim);margin-top:4px">预测下15分钟: <span style="color:' + color + ';font-weight:600">' + next15val + ' ' + p.unit + '</span></div>' +
+    extra +
+    '<div class="card-gauge"><canvas id="gauge_' + p.target + '"></canvas><div class="card-gauge-center" style="color:' + color + '">' + val + '</div></div>' +
+    '</div>';
+}
+
+// ==================== HISTORY TAB ====================
+function formatTs(ts) {
+  if (!ts) return '';
+  var s = String(ts).replace('T',' ').replace(/\.\d+/,'');
+  var d = new Date(s);
+  if (isNaN(d)) return ts;
+  var Y = d.getFullYear();
+  var M = (d.getMonth()+1).toString().padStart(2,'0');
+  var D = d.getDate().toString().padStart(2,'0');
+  var h = d.getHours().toString().padStart(2,'0');
+  var m = d.getMinutes().toString().padStart(2,'0');
+  return Y + '-' + M + '-' + D + ' ' + h + ':' + m;
+}
+function formatTsShort(ts) {
+  return formatTs(ts);
+}
+
+async function loadHistory() {
+  document.getElementById('historyContent').innerHTML = '<div class="spinner"></div><div class="loading-text">加载中...</div>';
+  destroyCharts(historyChartInstances);
+
+  try {
+    var resp = await fetch(API + '/history?hours=720');
+    var data = await resp.json();
+    historyDataStore = data;
+    renderHistory(data);
+  } catch(e) {
+    document.getElementById('historyContent').innerHTML = '<div style="text-align:center;color:var(--red);padding:40px">加载失败: ' + e.message + '</div>';
+  }
+}
+
+function renderHistory(data) {
+  destroyCharts(historyChartInstances);
+  var html = '';
+  var gh = data.greenhouse;
+  var ow = data.outdoor;
+
+  if (gh && gh.timestamps.length > 0) {
+    var labels = gh.timestamps.map(function(t){ return formatTs(t); });
+    html += '<div class="section-title gh">大棚历史数据 (' + gh.count + '条)</div>';
+    html += '<div class="charts-2col">';
+    html += chartCard('gh-hist-temp', '大棚温度', labels, gh.temperature, '#e74c3c', 'rgba(231,76,60,.08)', '°C');
+    html += chartCard('gh-hist-hum', '大棚湿度', labels, gh.humidity, '#2ecc71', 'rgba(46,204,113,.08)', '%');
+    html += '</div>';
+  }
+
+  if (ow && ow.timestamps.length > 0) {
+    var labels = ow.timestamps.map(function(t){ return formatTs(t); });
+    html += '<div class="section-title ow">室外历史数据 (' + ow.count + '条)</div>';
+    html += '<div class="charts-2col">';
+    html += chartCard('ow-hist-temp', '室外温度', labels, ow.temperature_outdoor, '#e67e22', 'rgba(230,126,34,.08)', '°C');
+    html += chartCard('ow-hist-hum', '室外湿度', labels, ow.humidity_outdoor, '#3498db', 'rgba(52,152,219,.08)', '%');
+    html += chartCard('ow-hist-light', '光照强度', labels, ow.light_intensity, '#f39c12', 'rgba(243,156,18,.08)', 'lux');
+    html += chartCard('ow-hist-wind', '风速', labels, ow.wind_speed, '#48cae4', 'rgba(72,202,228,.08)', 'm/s');
+    html += chartCard('ow-hist-winddir', '风向', labels, ow.wind_direction, '#9b59b6', 'rgba(155,89,182,.08)', '°');
+    html += chartCardBar('ow-hist-rain', '降雨量', labels, ow.rainfall, '#1abc9c', 'rgba(26,188,156,.3)', 'mm');
+    html += '</div>';
+  }
+
+  document.getElementById('historyContent').innerHTML = html || '<div style="text-align:center;color:var(--text-dim);padding:40px">无历史数据</div>';
+
+  setTimeout(function() { renderHistoryCharts(); }, 100);
+}
+
+function chartCard(id, title, labels, data, color, bg, yLabel) {
+  return '<div class="chart-card"><div class="chart-card-title">' + title + '</div>' +
+    '<div class="chart-card-body"><canvas id="' + id + '"></canvas></div></div>';
+}
+function chartCardBar(id, title, labels, data, color, bg, yLabel) {
+  return '<div class="chart-card"><div class="chart-card-title">' + title + '</div>' +
+    '<div class="chart-card-body"><canvas id="' + id + '"></canvas></div></div>';
+}
+
+function renderHistoryCharts() {
+  var tickCalc = function(len) {
+    var indices = [];
+    var step = Math.max(1, Math.floor(len / 12));
+    for (var i = 0; i < len; i += step) indices.push(i);
+    if (indices[indices.length-1] !== len-1) indices.push(len-1);
+    return indices;
+  };
+
+  var gh = historyDataStore.greenhouse;
+  var ow = historyDataStore.outdoor;
+  var ghLabels = gh ? gh.timestamps.map(function(t){ return formatTs(t); }) : [];
+  var owLabels = ow ? ow.timestamps.map(function(t){ return formatTs(t); }) : [];
+
+  // 分别渲染大棚和室外图表，使用各自的时间戳
+  if (gh) {
+    renderHistoryChart({ id:'gh-hist-temp', data:gh.temperature, color:'#e74c3c', bg:'rgba(231,76,60,.08)', yLabel:'°C', yColor:'#e74c3c' }, ghLabels);
+    renderHistoryChart({ id:'gh-hist-hum', data:gh.humidity, color:'#2ecc71', bg:'rgba(46,204,113,.08)', yLabel:'%', yColor:'#2ecc71' }, ghLabels);
+  }
+  if (ow) {
+    renderHistoryChart({ id:'ow-hist-temp', data:ow.temperature_outdoor, color:'#e67e22', bg:'rgba(230,126,34,.08)', yLabel:'°C', yColor:'#e67e22' }, owLabels);
+    renderHistoryChart({ id:'ow-hist-hum', data:ow.humidity_outdoor, color:'#3498db', bg:'rgba(52,152,219,.08)', yLabel:'%', yColor:'#3498db' }, owLabels);
+    renderHistoryChart({ id:'ow-hist-light', data:ow.light_intensity, color:'#f39c12', bg:'rgba(243,156,18,.08)', yLabel:'lux', yColor:'#f39c12' }, owLabels);
+    renderHistoryChart({ id:'ow-hist-wind', data:ow.wind_speed, color:'#48cae4', bg:'rgba(72,202,228,.08)', yLabel:'m/s', yColor:'#48cae4' }, owLabels);
+    renderHistoryChart({ id:'ow-hist-winddir', data:ow.wind_direction, color:'#9b59b6', bg:'rgba(155,89,182,.08)', yLabel:'°', yColor:'#9b59b6' }, owLabels);
+    renderHistoryChart({ id:'ow-hist-rain', data:ow.rainfall, color:'#1abc9c', bg:'rgba(26,188,156,.3)', yLabel:'mm', yColor:'#1abc9c', bar:true }, owLabels);
+  }
+}
+
+function renderHistoryChart(cfg, labels) {
+  var canvas = document.getElementById(cfg.id);
+  if (!canvas) return;
+
+  var tickCalc = function(len) {
+    var indices = [];
+    var step = Math.max(1, Math.floor(len / 12));
+    for (var i = 0; i < len; i += step) indices.push(i);
+    if (indices[indices.length-1] !== len-1) indices.push(len-1);
+    return indices;
+  };
+
+  var tickIndices = tickCalc(cfg.data.length);
+
+  var dsCfg = {
+    label: cfg.yLabel,
+    data: cfg.data,
+    borderColor: cfg.color,
+    backgroundColor: cfg.bg,
+    borderWidth: 1.5,
+    pointRadius: 0,
+    tension: 0.3,
+    fill: true,
+  };
+
+  historyChartInstances[cfg.id] = new Chart(canvas, {
+    type: cfg.bar ? 'bar' : 'line',
+    data: { labels: labels, datasets: [dsCfg] },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode:'index', intersect:false },
+      plugins: { legend:{display:false} },
+      scales: {
+        x: {
+          offset: false,
+          grid: { offset:false, color:'#1e3040' },
+          ticks: {
+            color:'#556677', font:{size:10},
+            callback: function(v, i) { return tickIndices.indexOf(i) >= 0 ? this.getLabelForValue(v) : ''; },
+            maxRotation: 45,
+            autoSkip: true,
+            autoSkipPadding: 10,
+          },
+        },
+        y: {
+          ticks: { color:'#556677', font:{size:10} },
+          grid: { color:'#1e3040' },
+          title: { display:true, text:cfg.yLabel, color:cfg.yColor }
+        }
+      },
+      animation: { duration: 500 }
+    }
+  });
+}
+
+// ==================== FORECAST TAB ====================
+async function loadForecast() {
+  if (forecastComputing) return;
+  forecastComputing = true;
+  forecastRefreshSec = 0;
+
+  var status = document.getElementById('fcStatus');
+  var content = document.getElementById('forecastContent');
+  status.textContent = '计算中...';
+  content.innerHTML = '<div class="spinner"></div><div class="loading-text">正在生成未来24小时预测，约需30秒...</div>';
+  destroyCharts(forecastChartInstances);
+
+  try {
+    var resp = await fetch(API + '/forecast?steps=96');
+    forecastData = await resp.json();
+    renderForecast(forecastData);
+    var ghSteps = forecastData.greenhouse && forecastData.greenhouse.timeline ? forecastData.greenhouse.timeline.length : 0;
+    var owSteps = forecastData.outdoor && forecastData.outdoor.timeline ? forecastData.outdoor.timeline.length : 0;
+    status.textContent = '预测完成 (大棚:' + ghSteps + '步, 室外:' + owSteps + '步)';
+    document.getElementById('fcNextRefresh').textContent = '每5分钟自动更新';
+    forecastComputing = false;
+  } catch(e) {
+    content.innerHTML = '<div style="text-align:center;color:var(--red);padding:40px">预测失败: ' + e.message + '</div>';
+    status.textContent = '重试';
+    forecastComputing = false;
+  }
+}
+
+function renderForecast(data) {
+  // 分别处理室外和大棚的预测时间线
+  var ghData = data.greenhouse;
+  var owData = data.outdoor;
+
+  destroyCharts(forecastChartInstances);
+
+  var html = '';
+
+  // 大棚预测
+  if (ghData && ghData.timeline && ghData.timeline.length > 0) {
+    var ghLatest = ghData.latest_timestamp ? '（数据截至: ' + formatTsShort(ghData.latest_timestamp) + '）' : '';
+    html += '<div class="section-title gh">大棚未来24小时预测 ' + ghLatest + '</div>';
+    html += '<div class="charts-2col">';
+    html += '<div class="chart-card"><div class="chart-card-title">大棚温度 (°C)</div><div class="chart-card-body"><canvas id="fc-gh-temp"></canvas></div></div>';
+    html += '<div class="chart-card"><div class="chart-card-title">大棚湿度 (%)</div><div class="chart-card-body"><canvas id="fc-gh-hum"></canvas></div></div>';
+    html += '</div>';
+  }
+
+  // 室外预测
+  if (owData && owData.timeline && owData.timeline.length > 0) {
+    var owLatest = owData.latest_timestamp ? '（数据截至: ' + formatTsShort(owData.latest_timestamp) + '）' : '';
+    html += '<div class="section-title ow">室外未来24小时预测 ' + owLatest + '</div>';
+    html += '<div class="charts-2col">';
+    html += '<div class="chart-card"><div class="chart-card-title">室外温度 (°C)</div><div class="chart-card-body"><canvas id="fc-ow-temp"></canvas></div></div>';
+    html += '<div class="chart-card"><div class="chart-card-title">室外湿度 (%)</div><div class="chart-card-body"><canvas id="fc-ow-hum"></canvas></div></div>';
+    html += '<div class="chart-card"><div class="chart-card-title">光照强度 (lux)</div><div class="chart-card-body"><canvas id="fc-ow-light"></canvas></div></div>';
+    html += '<div class="chart-card"><div class="chart-card-title">风速 (m/s)</div><div class="chart-card-body"><canvas id="fc-ow-wind"></canvas></div></div>';
+    html += '<div class="chart-card"><div class="chart-card-title">风向 (°)</div><div class="chart-card-body"><canvas id="fc-ow-winddir"></canvas></div></div>';
+    html += '<div class="chart-card"><div class="chart-card-title">降雨量 (mm)</div><div class="chart-card-body"><canvas id="fc-ow-rain"></canvas></div></div>';
+    html += '</div>';
+  }
+
+  if (!html) {
+    html = '<div style="text-align:center;color:var(--text-dim);padding:40px">暂无预测数据</div>';
+  }
+
+  document.getElementById('forecastContent').innerHTML = html;
+
+  setTimeout(function() {
+    // 渲染大棚图表
+    if (ghData && ghData.timeline && ghData.timeline.length > 0) {
+      renderSingleForecastChart('fc-gh-temp', ghData.timeline, 'greenhouse_temperature', '#e74c3c', '°C', false);
+      renderSingleForecastChart('fc-gh-hum', ghData.timeline, 'greenhouse_humidity', '#2ecc71', '%', false);
+    }
+
+    // 渲染室外图表
+    if (owData && owData.timeline && owData.timeline.length > 0) {
+      renderSingleForecastChart('fc-ow-temp', owData.timeline, 'outdoor_temperature', '#e67e22', '°C', false);
+      renderSingleForecastChart('fc-ow-hum', owData.timeline, 'outdoor_humidity', '#3498db', '%', false);
+      renderSingleForecastChart('fc-ow-light', owData.timeline, 'light_intensity', '#f39c12', 'lux', false);
+      renderSingleForecastChart('fc-ow-wind', owData.timeline, 'wind_speed', '#48cae4', 'm/s', false);
+      renderSingleForecastChart('fc-ow-winddir', owData.timeline, 'wind_direction', '#9b59b6', '°', false);
+      renderSingleForecastChart('fc-ow-rain', owData.timeline, 'rainfall', '#1abc9c', 'mm', true);
+    }
+  }, 100);
+}
+
+function renderSingleForecastChart(canvasId, timeline, target, color, yLabel, isBar) {
+  var canvas = document.getElementById(canvasId);
+  if (!canvas) return;
+
+  var labels = timeline.map(function(t){ return formatTsShort(t.timestamp); });
+  var values = timeline.map(function(t){ return t.predictions[target] !== undefined ? t.predictions[target] : null; });
+
+  // 只在整点时刻显示标签（每4个点）
+  var hourLabels = [];
+  for (var h = 0; h < 24; h++) { var idx = h * 4; if (idx < labels.length) hourLabels.push(idx); }
+
+  // Convert hex color to rgba with 8% opacity
+  var hex = color.replace('#','');
+  var r = parseInt(hex.substr(0,2),16);
+  var g = parseInt(hex.substr(2,2),16);
+  var b = parseInt(hex.substr(4,2),16);
+  var colorRgba = 'rgba('+r+','+g+','+b+',.08)';
+
+  forecastChartInstances[canvasId] = new Chart(canvas, {
+    type: isBar ? 'bar' : 'line',
+    data: {
+      labels: labels,
+      datasets: [{
+        label: yLabel,
+        data: values,
+        borderColor: color,
+        backgroundColor: isBar ? 'rgba(26,188,156,.3)' : colorRgba,
+        borderWidth: isBar ? 0 : 2,
+        pointRadius: 0,
+        tension: 0.3,
+        fill: !isBar,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode:'index', intersect:false },
+      plugins: { legend:{display:false} },
+      scales: {
+        x: {
+          offset: false,
+          grid: { offset:false, color:'#1e3040' },
+          ticks: {
+            maxRotation: 0,
+            autoSkip: true,
+            maxTicksLimit: 12,
+            color:'#aaa',
+            font:{size:10},
+            callback: function(val, idx) {
+              return hourLabels.includes(idx) ? this.getLabelForValue(val).split(' ')[1] || this.getLabelForValue(val) : '';
+            }
+          }
+        },
+        y: {
+          grid:{color:'#1e3040'},
+          ticks:{color:'#aaa', font:{size:10}},
+          title:{display:true, text:yLabel, color:'#aaa', font:{size:10}}
+        }
+      }
+    }
+  });
+}
+
+// 保留旧的 renderForecastChart 函数用于向后兼容
+function renderForecastChart(cfg, tl, allLabels) {
+  var canvas = document.getElementById(cfg.id);
+  if (!canvas) return;
+  var values = tl.map(function(t){ return t.predictions[cfg.target] !== undefined ? t.predictions[cfg.target] : null; });
+
+  // Convert hex color to rgba with 8% opacity (same as history charts)
+  var hex = cfg.color.replace('#','');
+  var r = parseInt(hex.substr(0,2),16);
+  var g = parseInt(hex.substr(2,2),16);
+  var b = parseInt(hex.substr(4,2),16);
+  var colorRgba = 'rgba('+r+','+g+','+b+',.08)';
+
+  forecastChartInstances[cfg.id] = new Chart(canvas, {
+    type: cfg.bar ? 'bar' : 'line',
+    data: {
+      labels: allLabels,
+      datasets: [{
+        label: cfg.yLabel,
+        data: values,
+        borderColor: cfg.color,
+        backgroundColor: cfg.bar ? 'rgba(26,188,156,.3)' : colorRgba,
+        borderWidth: cfg.bar ? 0 : 2,
+        pointRadius: 0,
+        tension: 0.3,
+        fill: !cfg.bar,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode:'index', intersect:false },
+      plugins: { legend:{display:false} },
+      scales: {
+        x: {
+          offset: false,
+          grid: { offset:false, color:'#1e3040' },
+          ticks: {
+                color:'#556677', font:{size:10},
+                callback: function(v, i) { return hourLabels.indexOf(i) >= 0 ? this.getLabelForValue(v) : ''; },
+                maxRotation: 45,
+                autoSkip: true,
+                autoSkipPadding: 10,
+              },
+            },
+            y: {
+              ticks: { color:'#556677', font:{size:10} },
+              grid: { color:'#1e3040' },
+              title: { display:true, text:cfg.yLabel, color:cfg.color }
+            }
+          },
+          animation: { duration: 500 }
+        }
+      });
+}
+
+// Forecast auto-refresh (every 5 minutes)
+setInterval(function() {
+  if (currentTab === 'forecast' && forecastData && !forecastComputing) {
+    forecastRefreshSec++;
+    if (forecastRefreshSec >= 300) {
+      forecastRefreshSec = 0;
+      loadForecast();
+    }
+    document.getElementById('fcNextRefresh').textContent = '下次更新: ' + (300 - forecastRefreshSec) + 's';
+  }
+}, 1000);
+
+// ==================== UPLOAD TAB ====================
+function handleFileSelect(evt) {
+  var file = evt.target.files[0];
+  if (!file) return;
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    document.getElementById('pasteInput').value = e.target.result;
+  };
+  reader.readAsText(file);
+}
+
+async function uploadData() {
+  var text = document.getElementById('pasteInput').value.trim();
+  if (!text) {
+    showUploadStatus('请输入或选择数据文件', 'error');
+    return;
+  }
+  showUploadStatus('上传中...', '');
+
+  try {
+    var blob = new Blob([text], {type:'application/json'});
+    var form = new FormData();
+    form.append('file', blob, 'data.csv');
+
+    var resp = await fetch(API + '/upload', { method:'POST', body:form });
+    var result = await resp.json();
+
+    if (resp.ok) {
+      showUploadStatus('上传成功: ' + result.message, 'success');
+      refreshLive();
+      historyDataStore = {};
+      if (currentTab === 'history') loadHistory();
+      forecastData = null;
+      document.getElementById('forecastContent').innerHTML = '<div class="spinner"></div><div class="loading-text">数据已更新，重新生成预测中...</div>';
+      setTimeout(loadForecast, 500);
+    } else {
+      showUploadStatus('上传失败: ' + (result.detail || result.message), 'error');
+    }
+  } catch(e) {
+    showUploadStatus('上传失败: ' + e.message, 'error');
+  }
+}
+
+function showUploadStatus(msg, cls) {
+  var el = document.getElementById('uploadStatus');
+  el.textContent = msg;
+  el.className = 'upload-status ' + cls;
+}
+
+// ==================== REALTIME CLOCK ====================
+function updateClock() {
+  var now = new Date();
+  var h = now.getHours().toString().padStart(2,'0');
+  var m = now.getMinutes().toString().padStart(2,'0');
+  var s = now.getSeconds().toString().padStart(2,'0');
+  document.getElementById('realtimeClock').textContent = h + ':' + m + ':' + s;
+}
+updateClock();
+setInterval(updateClock, 1000);
+
+// ==================== STARTUP ====================
+refreshLive();
+pollTimer = setInterval(pollTick, 1000);
+
+// 页面加载后立即在后台开始生成未来24小时预测
+setTimeout(function() {
+  loadForecast();
+}, 1500);
+</script>
+</body>
+</html>

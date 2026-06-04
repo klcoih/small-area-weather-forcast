@@ -14,6 +14,7 @@ Prophet 模型（Facebook Prophet）
   - interval_width: 预测区间宽度 (0.8)
 
 注: Prophet 也是单变量模型，仅使用时间和历史值
+     超过 max_samples 时自动截取
 """
 
 import time
@@ -22,6 +23,8 @@ import pandas as pd
 import numpy as np
 
 logger = logging.getLogger(__name__)
+
+MAX_PROPHET_SAMPLES = 20000
 
 
 class ProphetModel:
@@ -44,6 +47,14 @@ class ProphetModel:
                       ds: datetime, y: float
         """
         from prophet import Prophet
+
+        original_len = len(df_train)
+        if original_len > MAX_PROPHET_SAMPLES:
+            logger.warning(
+                f"Prophet 数据量 {original_len} 超过上限 {MAX_PROPHET_SAMPLES}，"
+                f"截取最近 {MAX_PROPHET_SAMPLES} 条"
+            )
+            df_train = df_train.iloc[-MAX_PROPHET_SAMPLES:].copy()
 
         self.model = Prophet(
             changepoint_prior_scale=self.changepoint_prior_scale,

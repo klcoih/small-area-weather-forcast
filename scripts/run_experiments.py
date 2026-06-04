@@ -16,6 +16,9 @@ import argparse
 import subprocess
 
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, os.path.join(CURRENT_DIR, '..'))
+
+EXPERIMENT_TIMEOUT = 600
 
 
 def check_imports():
@@ -104,11 +107,10 @@ def main():
         print("[1] 运行 prepare.py 准备数据...")
         result = subprocess.run(
             [sys.executable, os.path.join(CURRENT_DIR, 'prepare.py')],
-            capture_output=True, text=True, cwd=CURRENT_DIR
+            cwd=CURRENT_DIR
         )
         if result.returncode != 0:
-            print("[!] prepare.py 运行失败:")
-            print(result.stderr[-500:])
+            print("[!] prepare.py 运行失败")
         else:
             print("    prepare.py 完成")
 
@@ -137,26 +139,26 @@ def main():
     success = 0
     fail = 0
 
-    for model, target in combinations:
+    for i, (model, target) in enumerate(combinations):
+        print(f"  [{i + 1}/{len(combinations)}] {model} -> {target} ...", end=' ', flush=True)
         cmd = [
             sys.executable, os.path.join(CURRENT_DIR, 'train.py'),
             '--model', model,
             '--target', target,
             '--results', args.results,
         ]
-        result = subprocess.run(cmd, capture_output=True, text=True, cwd=CURRENT_DIR)
+        try:
+            result = subprocess.run(cmd, cwd=CURRENT_DIR, timeout=EXPERIMENT_TIMEOUT)
 
-        if result.returncode == 0:
-            success += 1
-            last_line = [l for l in result.stdout.strip().split('\n') if l.strip()][-1] if result.stdout.strip() else ''
-            print(f"  [OK] {model:10s} -> {target:30s} {last_line[:80]}")
-        else:
+            if result.returncode == 0:
+                success += 1
+                print(f"OK")
+            else:
+                fail += 1
+                print(f"FAIL (exit={result.returncode})")
+        except subprocess.TimeoutExpired:
             fail += 1
-            print(f"  [FAIL] {model:10s} -> {target:30s}")
-            err_lines = result.stderr.strip().split('\n')
-            for line in err_lines[-3:]:
-                if line.strip():
-                    print(f"         {line.strip()[:100]}")
+            print(f"TIMEOUT (> {EXPERIMENT_TIMEOUT}s)")
 
     print(f"\n[4] 训练完成: {success} 成功, {fail} 失败")
     if os.path.exists(os.path.join(CURRENT_DIR, args.results)):

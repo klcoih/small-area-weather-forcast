@@ -42,7 +42,8 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
-DATA_DIR = os.path.join(CURRENT_DIR, 'autoresearch_data')
+sys.path.insert(0, os.path.join(CURRENT_DIR, '..'))
+DATA_DIR = os.path.join(CURRENT_DIR, '..', 'autoresearch_data')
 
 TARGET_TYPES = {
     'greenhouse_temperature': 'regression',
@@ -167,10 +168,14 @@ def format_special(target_type, metrics):
     elif target_type == 'two_stage':
         cls = metrics.get('classification', {})
         reg = metrics.get('regression', {})
-        return (f"cls_auc={cls.get('auc', '-'):.4f}|"
-                f"brier={cls.get('brier', '-'):.4f}|"
-                f"csi={cls.get('csi', '-'):.4f}|"
-                f"rain_mae={reg.get('mae_rain_only', '-')}")
+        if cls:
+            return (f"cls_auc={cls.get('auc', '-'):.4f}|"
+                    f"brier={cls.get('brier', '-'):.4f}|"
+                    f"csi={cls.get('csi', '-'):.4f}|"
+                    f"rain_mae={reg.get('mae_rain_only', '-')}")
+        else:
+            return (f"csi={metrics.get('csi', '-')}|"
+                    f"accuracy={metrics.get('accuracy', '-')}")
     return '-'
 
 

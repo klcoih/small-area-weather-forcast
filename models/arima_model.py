@@ -12,6 +12,8 @@ ARIMA 模型（基于 pmdarima 自动定阶）
   - information_criterion: 模型选择准则 (aic, bic)
 
 注: ARIMA 是单变量模型，仅使用历史值预测未来
+    超过 MAX_SIMPLE_SAMPLES 时禁用季节性以避免计算爆炸
+    超过 MAX_ARIMA_SAMPLES 时截取最近 N 条
 """
 
 import time
@@ -19,6 +21,9 @@ import logging
 import numpy as np
 
 logger = logging.getLogger(__name__)
+
+MAX_ARIMA_SAMPLES = 5000
+MAX_SIMPLE_SAMPLES = 2000
 
 
 class ARIMAModel:
@@ -40,26 +45,58 @@ class ARIMAModel:
         import pmdarima as pm
 
         y = np.array(y_train, dtype=float)
-        seasonal_order = (self.max_p, self.max_d, self.max_q, self.m) if self.seasonal else (0, 0, 0, 1)
+        original_len = len(y)
+        capped = False
+
+        if original_len > MAX_ARIMA_SAMPLES:
+            logger.warning(
+                f"ARIMA 数据量 {original_len} 超过上限 {MAX_ARIMA_SAMPLES}，"
+                f"截取最近 {MAX_ARIMA_SAMPLES} 条"
+            )
+            y = y[-MAX_ARIMA_SAMPLES:]
+            capped = True
+
+        use_seasonal = self.seasonal and not capped and len(y) <= MAX_SIMPLE_SAMPLES
+        if self.seasonal and not use_seasonal:
+            logger.info(f"ARIMA 数据量 {len(y)} 较大，禁用季节性以加速训练，m={self.m}")
+
+        effective_m = min(self.m, 12) if use_seasonal else 1
+        max_p = min(self.max_p, 2) if capped else self.max_p
+        max_q = min(self.max_q, 2) if capped else self.max_q
+        max_d = min(self.max_d, 1) if capped else self.max_d
 
         logger.info(
-            f"ARIMA: seasonal={self.seasonal}, m={self.m}, "
-            f"p={self.max_p}, d={self.max_d}, q={self.max_q}"
+            f"ARIMA: seasonal={use_seasonal}, m={effective_m}, "
+            f"max(p,d,q)=({max_p},{max_d},{max_q}), "
+            f"samples={len(y)}"
         )
 
-        self.model = pm.auto_arima(
-            y,
-            seasonal=self.seasonal,
-            m=self.m,
-            start_p=0, max_p=self.max_p,
-            start_d=0, max_d=self.max_d,
-            start_q=0, max_q=self.max_q,
-            stepwise=self.stepwise,
-            information_criterion=self.information_criterion,
-            suppress_warnings=True,
-            error_action='ignore',
-            trace=False,
-        )
+        try:
+            self.model = pm.auto_arima(
+                y,
+                seasonal=use_seasonal,
+                m=effective_m,
+                start_p=0, max_p=max_p,
+                start_d=0, max_d=max_d,
+                start_q=0, max_q=max_q,
+                max_P=1 if use_seasonal else 0,
+                max_Q=1 if use_seasonal else 0,
+                stepwise=True,
+                information_criterion=self.information_criterion,
+                suppress_warnings=True,
+                error_action='ignore',
+                trace=False,
+                maxiter=30,
+            )
+        except Exception as e:
+            logger.warning(f"auto_arima 失败: {e}, 降级为最简单模型")
+            self.model = pm.auto_arima(
+                y, seasonal=False,
+                start_p=0, max_p=2, max_d=1, max_q=2,
+                stepwise=True, suppress_warnings=True,
+                error_action='ignore', trace=False,
+            )
+
         self.model_fit = self.model
         logger.info(f"ARIMA 拟合完成: order={self.model.order}, seasonal_order={self.model.seasonal_order}")
 
