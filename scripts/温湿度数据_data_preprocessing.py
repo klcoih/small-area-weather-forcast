@@ -112,8 +112,8 @@ def main():
     """
     print("开始数据预处理...")
     
-    # 定义输入输出目录
-    current_dir = os.path.dirname(os.path.abspath(__file__))
+    # 定义输入输出目录（scripts目录向上一级为项目根目录）
+    current_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     input_dir_name = "温湿度数据"  # 读取的文件夹名称
     input_dir = os.path.join(current_dir, input_dir_name)
     output_dir = os.path.join(current_dir, "天气数据", input_dir_name)
